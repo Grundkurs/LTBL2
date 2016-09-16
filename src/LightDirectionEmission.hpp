@@ -2,17 +2,16 @@
 
 #include "Quadtree.hpp"
 
-namespace lum 
+namespace ltbl 
 {
-	
+
+class LightSystem;
 class LightDirectionEmission : public sf::Sprite
 {
 	public:
-		typedef std::shared_ptr<LightDirectionEmission> Ptr;
+		LightDirectionEmission(LightSystem& system);
 
-		LightDirectionEmission();
-
-		void render(const sf::View &view, sf::RenderTexture &lightTempTexture, sf::RenderTexture &antumbraTempTexture, const std::vector<QuadtreeOccupant*> &shapes, sf::Shader &unshadowShader, float shadowExtension);
+		void render(const sf::View &view, sf::RenderTexture &lightTempTexture, sf::RenderTexture &antumbraTempTexture, const std::vector<QuadtreeOccupant*> &shapes, float shadowExtension);
 
 		void setCastDirection(sf::Vector2f const& castDirection);
 		sf::Vector2f getCastDirection() const;
@@ -20,7 +19,11 @@ class LightDirectionEmission : public sf::Sprite
 		void setCastAngle(float angle);
 		float getCastAngle() const;
 
+		void remove();
+
 	private:
+		LightSystem& mSystem;
+
 		sf::Vector2f mCastDirection;
 		float mCastAngle;
 

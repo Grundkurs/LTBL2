@@ -3,43 +3,41 @@
 #include <assert.h>
 #include <iostream>
 
-namespace lum
+namespace ltbl
 {
 
 LightSystem::LightSystem()
-	: mUnshadowShader(nullptr)
-	, mLightOverShapeShader(nullptr)
-	, mDirectionEmissionRange(1000.0f)
+	: mDirectionEmissionRange(1000.0f)
 	, mDirectionEmissionRadiusMultiplier(1.1f)
 	, mAmbientColor(sf::Color(16, 16, 16))
 {
 }
 
-void LightSystem::create(const sf::FloatRect& rootRegion, const sf::Vector2u& imageSize, const sf::Texture& penumbraTexture, sf::Shader& unshadowShader, sf::Shader& lightOverShapeShader)
+void LightSystem::create(const sf::FloatRect& rootRegion, const sf::Vector2u& imageSize)
 {
     mShapeQuadtree.create(rootRegion);
     mLightPointEmissionQuadtree.create(rootRegion);
 
-	mUnshadowShader = &unshadowShader;
-	unshadowShader.setUniform("penumbraTexture", penumbraTexture);
+	using namespace resources;
 
-	mLightOverShapeShader = &lightOverShapeShader;
+	// Load Texture
+	mPenumbraTexture.loadFromMemory(penumbraTexture, (sizeof(penumbraTexture) / sizeof(*penumbraTexture)));
+	mPenumbraTexture.setSmooth(true);
 
-	updateTextureSize(imageSize);
+	// Load Shaders
+	mUnshadowShader.loadFromMemory(unshadowFragment, sf::Shader::Fragment);
+	mLightOverShapeShader.loadFromMemory(lightOverShapeFragment, sf::Shader::Fragment);
+
+	update(imageSize);
 }
 
 void LightSystem::render(sf::RenderTarget& target)
 {
-	if (mUnshadowShader == nullptr || mLightOverShapeShader == nullptr)
-	{
-		return;
-	}
-
 	sf::View view = target.getView();
 
 	if (target.getSize() != mLightTempTexture.getSize())
 	{
-		updateTextureSize(target.getSize());
+		update(target.getSize());
 	}
 
     mCompositionTexture.clear(mAmbientColor);
@@ -66,7 +64,7 @@ void LightSystem::render(sf::RenderTarget& target)
 			lightShapes.clear();
 			mShapeQuadtree.queryRegion(lightShapes, pPointEmissionLight->getAABB());
 
-			pPointEmissionLight->render(view, mLightTempTexture, mEmissionTempTexture, mAntumbraTempTexture, lightShapes, *mUnshadowShader, *mLightOverShapeShader);
+			pPointEmissionLight->render(view, mLightTempTexture, mEmissionTempTexture, mAntumbraTempTexture, lightShapes);
 			mCompositionTexture.draw(lightTempSprite, sf::BlendAdd);
 		}
     }
@@ -88,7 +86,7 @@ void LightSystem::render(sf::RenderTarget& target)
         std::vector<QuadtreeOccupant*> viewLightShapes;
         mShapeQuadtree.queryShape(viewLightShapes, directionShape);
 
-        directionEmissionLight->render(view, mLightTempTexture, mAntumbraTempTexture, viewLightShapes, *mUnshadowShader, shadowExtension);
+        directionEmissionLight->render(view, mLightTempTexture, mAntumbraTempTexture, viewLightShapes, shadowExtension);
 
         mCompositionTexture.draw(sf::Sprite(mLightTempTexture.getTexture()), sf::BlendAdd);
     }
@@ -100,55 +98,58 @@ void LightSystem::render(sf::RenderTarget& target)
 	target.setView(view);
 }
 
-LightShape::Ptr LightSystem::createLightShape()
+LightShape* LightSystem::createLightShape()
 {
-	LightShape::Ptr shape = std::make_shared<LightShape>();
-	mShapeQuadtree.add(shape.get());
+	LightShape* shape = new LightShape(*this);
+	mShapeQuadtree.add(shape);
 	mLightShapes.insert(shape);
 	return shape;
 }
 
-void LightSystem::removeShape(LightShape::Ptr shape)
+void LightSystem::removeShape(LightShape* shape)
 {
 	auto itr = mLightShapes.find(shape);
 	if (itr != mLightShapes.end()) 
 	{
 		(*itr)->quadtreeRemove();
 		mLightShapes.erase(itr);
+		delete shape;
 	}
 }
 
-LightPointEmission::Ptr LightSystem::createLightPointEmission()
+LightPointEmission* LightSystem::createLightPointEmission()
 {
-	LightPointEmission::Ptr light = std::make_shared<LightPointEmission>();
-	mLightPointEmissionQuadtree.add(light.get());
+	LightPointEmission* light = new LightPointEmission(*this);
+	mLightPointEmissionQuadtree.add(light);
 	mPointEmissionLights.insert(light);
 	return light;
 }
 
-void LightSystem::removeLight(LightPointEmission::Ptr light)
+void LightSystem::removeLight(LightPointEmission* light)
 {
 	auto itr = mPointEmissionLights.find(light);
 	if (itr != mPointEmissionLights.end())
 	{
 		(*itr)->quadtreeRemove();
 		mPointEmissionLights.erase(itr);
+		delete light;
 	}
 }
 
-LightDirectionEmission::Ptr LightSystem::createLightPointDirection()
+LightDirectionEmission* LightSystem::createLightPointDirection()
 {
-	LightDirectionEmission::Ptr light = std::make_shared<LightDirectionEmission>();
+	LightDirectionEmission* light = new LightDirectionEmission(*this);
 	mDirectionEmissionLights.insert(light);
 	return light;
 }
 
-void LightSystem::removeLight(LightDirectionEmission::Ptr light) 
+void LightSystem::removeLight(LightDirectionEmission* light) 
 {
     auto itr = mDirectionEmissionLights.find(light);
 	if (itr != mDirectionEmissionLights.end())
 	{
 		mDirectionEmissionLights.erase(itr);
+		delete light;
 	}
 }
 
@@ -162,18 +163,35 @@ void LightSystem::trimShapeQuadtree()
 	mShapeQuadtree.trim();
 }
 
-void LightSystem::updateTextureSize(sf::Vector2u const & size)
+void LightSystem::update(sf::Vector2u const& size)
 {
-	mLightTempTexture.create(size.x, size.y);
-	mEmissionTempTexture.create(size.x, size.y);
-	mAntumbraTempTexture.create(size.x, size.y);
-	mCompositionTexture.create(size.x, size.y);
+	mUnshadowShader.setUniform("penumbraTexture", mPenumbraTexture);
 
-	if (mLightOverShapeShader != nullptr)
+	if (size.x != 0 && size.y != 0)
 	{
-		mLightOverShapeShader->setUniform("emissionTexture", mEmissionTempTexture.getTexture());
-		mLightOverShapeShader->setUniform("targetSizeInv", sf::Vector2f(1.0f / size.x, 1.0f / size.y));
+		mLightTempTexture.create(size.x, size.y);
+		mEmissionTempTexture.create(size.x, size.y);
+		mAntumbraTempTexture.create(size.x, size.y);
+		mCompositionTexture.create(size.x, size.y);
+
+		mLightOverShapeShader.setUniform("emissionTexture", mEmissionTempTexture.getTexture());
+		mLightOverShapeShader.setUniform("targetSizeInv", sf::Vector2f(1.0f / size.x, 1.0f / size.y));
 	}
+}
+
+sf::Texture& LightSystem::getPenumbraTexture()
+{
+	return mPenumbraTexture;
+}
+
+sf::Shader& LightSystem::getUnshadowShader()
+{
+	return mUnshadowShader;
+}
+
+sf::Shader& LightSystem::getLightOverShapeShader()
+{
+	return mLightOverShapeShader;
 }
 
 void LightSystem::getPenumbrasPoint(std::vector<Penumbra> &penumbras, std::vector<int> &innerBoundaryIndices, std::vector<sf::Vector2f> &innerBoundaryVectors, std::vector<int> &outerBoundaryIndices, std::vector<sf::Vector2f> &outerBoundaryVectors, const sf::ConvexShape &shape, const sf::Vector2f &sourceCenter, float sourceRadius)

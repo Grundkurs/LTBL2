@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <assert.h>
 
-namespace lum
+namespace ltbl
 {
 
 QuadtreeOccupant::QuadtreeOccupant() 

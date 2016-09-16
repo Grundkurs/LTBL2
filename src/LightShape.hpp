@@ -2,23 +2,25 @@
 
 #include "Quadtree.hpp"
 
-namespace lum
+namespace ltbl
 {
 
+class LightSystem;
 class LightShape : public QuadtreeOccupant, public sf::ConvexShape
 {
 	public:
-		typedef std::shared_ptr<LightShape> Ptr;
-
-		LightShape();
+		LightShape(LightSystem& system);
 
 		void setRenderLightOver(bool renderLightOver);
 		bool renderLightOver() const;
 
 		sf::FloatRect getAABB() const;
 
+		void remove();
+
 	private:
+		LightSystem& mSystem;
 		bool mRenderLightOver;
 };
 
-} // namespace lum
+} // namespace ltbl

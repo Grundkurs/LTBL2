@@ -4,18 +4,19 @@
 
 #include <assert.h>
 
-namespace lum
+namespace ltbl
 {
 
-LightDirectionEmission::LightDirectionEmission()
-	: mCastDirection(0.f, 1.f)
+LightDirectionEmission::LightDirectionEmission(LightSystem& system)
+	: mSystem(system)
+	, mCastDirection(0.f, 1.f)
 	, mCastAngle(90.f)
 	, mSourceRadius(5.0f)
 	, mSourceDistance(100.0f)
 {
 }
 
-void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lightTempTexture, sf::RenderTexture &antumbraTempTexture, const std::vector<QuadtreeOccupant*> &shapes, sf::Shader &unshadowShader, float shadowExtension)
+void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lightTempTexture, sf::RenderTexture &antumbraTempTexture, const std::vector<QuadtreeOccupant*> &shapes, float shadowExtension)
 {
     lightTempTexture.setView(view);
     lightTempTexture.clear(sf::Color::White);
@@ -68,13 +69,13 @@ void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lig
 			{
 				sf::RenderStates states;
 				states.blendMode = sf::BlendAdd;
-				states.shader = &unshadowShader;
+				states.shader = &mSystem.getUnshadowShader();
 
 				// Unmask with penumbras
 				for (unsigned j = 0; j < penumbras.size(); j++)
 				{
-					unshadowShader.setUniform("lightBrightness", penumbras[j]._lightBrightness);
-					unshadowShader.setUniform("darkBrightness", penumbras[j]._darkBrightness);
+					mSystem.getUnshadowShader().setUniform("lightBrightness", penumbras[j]._lightBrightness);
+					mSystem.getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
 
 					vertexArray[0].position = penumbras[j]._source;
 					vertexArray[1].position = penumbras[j]._source + vectorNormalize(penumbras[j]._lightEdge) * totalShadowExtension;
@@ -136,6 +137,11 @@ void LightDirectionEmission::setCastAngle(float angle)
 float LightDirectionEmission::getCastAngle() const
 {
 	return mCastAngle;
+}
+
+void LightDirectionEmission::remove()
+{
+	mSystem.removeLight(this);
 }
 
 } // namespace lum

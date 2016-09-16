@@ -4,7 +4,7 @@
 #include <cmath>
 #include <list>
 
-namespace lum
+namespace ltbl
 {
 
 sf::Vector2f rectCenter(const sf::FloatRect &rect) 

@@ -2,7 +2,7 @@
 
 #include <SFML/Graphics.hpp>
 
-namespace lum
+namespace ltbl
 {
 
 const float _pi = 3.14159265f;

@@ -1,10 +1,12 @@
 #include "LightShape.hpp"
+#include "LightSystem.hpp"
 
-namespace lum
+namespace ltbl
 {
 
-LightShape::LightShape()
-	: mRenderLightOver(true)
+LightShape::LightShape(LightSystem& system)
+	: mSystem(system)
+	, mRenderLightOver(true)
 {
 }
 
@@ -21,6 +23,11 @@ bool LightShape::renderLightOver() const
 sf::FloatRect LightShape::getAABB() const
 {
 	return getGlobalBounds();
+}
+
+void LightShape::remove()
+{
+	mSystem.removeShape(this);
 }
 
 } // namespace lum

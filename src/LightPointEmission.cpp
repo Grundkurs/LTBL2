@@ -5,11 +5,12 @@
 #include <assert.h>
 #include <iostream>
 
-namespace lum
+namespace ltbl
 {
 
-LightPointEmission::LightPointEmission()
-	: mSourceRadius(8.0f)
+LightPointEmission::LightPointEmission(LightSystem& system)
+	: mSystem(system)
+	, mSourceRadius(8.0f)
 	, mShadowOverExtendMultiplier(1.4f)
 {
 }
@@ -21,8 +22,7 @@ sf::FloatRect LightPointEmission::getAABB() const
 
 void LightPointEmission::render(const sf::View& view,
                             sf::RenderTexture& lightTempTexture, sf::RenderTexture& emissionTempTexture, sf::RenderTexture& antumbraTempTexture,
-                            const std::vector<QuadtreeOccupant*>& shapes,
-                            sf::Shader& unshadowShader, sf::Shader& lightOverShapeShader)
+                            const std::vector<QuadtreeOccupant*>& shapes)
 {
     emissionTempTexture.clear();
     emissionTempTexture.setView(view);
@@ -43,8 +43,8 @@ void LightPointEmission::render(const sf::View& view,
     std::vector<sf::Vector2f> innerBoundaryVectors;
     std::vector<LightSystem::Penumbra> penumbras;
 
-	sf::RenderStates maskRenderStates = sf::RenderStates(sf::BlendNone);
-	sf::RenderStates antumbraRenderStates = sf::RenderStates(sf::BlendMultiply);
+	sf::RenderStates maskRenderStates = sf::BlendNone;
+	sf::RenderStates antumbraRenderStates = sf::BlendMultiply;
 
     //----- Emission
 
@@ -129,13 +129,13 @@ void LightPointEmission::render(const sf::View& view,
 
 				sf::RenderStates penumbraRenderStates;
 				penumbraRenderStates.blendMode = sf::BlendAdd;
-				penumbraRenderStates.shader = &unshadowShader;
+				penumbraRenderStates.shader = &mSystem.getUnshadowShader();
 
 				// Unmask with penumbras
 				for (unsigned j = 0; j < penumbras.size(); j++)
 				{
-					unshadowShader.setUniform("lightBrightness", penumbras[j]._lightBrightness);
-					unshadowShader.setUniform("darkBrightness", penumbras[j]._darkBrightness);
+					mSystem.getUnshadowShader().setUniform("lightBrightness", penumbras[j]._lightBrightness);
+					mSystem.getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
 
 					vertexArray[0].position = penumbras[j]._source;
 					vertexArray[1].position = penumbras[j]._source + vectorNormalize(penumbras[j]._lightEdge) * shadowExtension;
@@ -172,13 +172,13 @@ void LightPointEmission::render(const sf::View& view,
 
 				sf::RenderStates penumbraRenderStates;
 				penumbraRenderStates.blendMode = sf::BlendMultiply;
-				penumbraRenderStates.shader = &unshadowShader;
+				penumbraRenderStates.shader = &mSystem.getUnshadowShader();
 
 				// Unmask with penumbras
 				for (unsigned j = 0; j < penumbras.size(); j++)
 				{
-					unshadowShader.setUniform("lightBrightness", penumbras[j]._lightBrightness);
-					unshadowShader.setUniform("darkBrightness", penumbras[j]._darkBrightness);
+					mSystem.getUnshadowShader().setUniform("lightBrightness", penumbras[j]._lightBrightness);
+					mSystem.getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
 
 					vertexArray[0].position = penumbras[j]._source;
 					vertexArray[1].position = penumbras[j]._source + vectorNormalize(penumbras[j]._lightEdge) * shadowExtension;
@@ -201,7 +201,7 @@ void LightPointEmission::render(const sf::View& view,
         if (pLightShape->renderLightOver()) 
 		{
             pLightShape->setFillColor(sf::Color::White);
-            lightTempTexture.draw(*pLightShape, &lightOverShapeShader);
+            lightTempTexture.draw(*pLightShape, &mSystem.getLightOverShapeShader());
         }
         else 
 		{
@@ -230,6 +230,11 @@ sf::Vector2f LightPointEmission::getCastCenter() const
 	sf::Transform t = getTransform();
 	t.translate(getOrigin());
 	return t.transformPoint(mLocalCastCenter);
+}
+
+void LightPointEmission::remove()
+{
+	mSystem.removeLight(this);
 }
 
 } // namespace lum

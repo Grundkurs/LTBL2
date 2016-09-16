@@ -10,7 +10,7 @@
 #include <memory>
 #include <unordered_set>
 
-namespace lum
+namespace ltbl
 {
 
 class QuadtreeOccupant
