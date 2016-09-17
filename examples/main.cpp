@@ -5,17 +5,13 @@
 
 int main()
 {
-	sf::RenderWindow window(sf::VideoMode(800, 600), "Lumos", sf::Style::Close);
+	sf::RenderWindow window(sf::VideoMode(800, 600), "Let The Be Light 2", sf::Style::Close);
 	window.setVerticalSyncEnabled(true);
 
 	sf::View view = window.getDefaultView();
 
 	ltbl::LightSystem ls;
 	ls.create({ -1000.f, -1000.f, 2000.f, 2000.f }, window.getSize());
-
-	sf::Texture directionLightTexture;
-	directionLightTexture.loadFromFile("LTBL2/examples/directionLightTexture.png");
-	directionLightTexture.setSmooth(true);
 
 	sf::Texture pointLightTexture;
 	pointLightTexture.loadFromFile("LTBL2/examples/pointLightTexture.png");
@@ -28,9 +24,6 @@ int main()
 	//----- Add Lights and Blocks
 
 	auto sun = ls.createLightPointDirection();
-	sun->setOrigin(sf::Vector2f(directionLightTexture.getSize().x * 0.5f, directionLightTexture.getSize().y * 0.5f));
-	sun->setTexture(directionLightTexture);
-	sun->setScale(sf::Vector2f(6.0f, 6.0f));
 	sun->setColor(sf::Color(255, 230, 200));
 
 	auto mlight = ls.createLightPointEmission();

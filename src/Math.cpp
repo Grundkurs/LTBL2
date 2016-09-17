@@ -289,4 +289,4 @@ bool rayIntersect(const sf::Vector2f &as, const sf::Vector2f &ad, const sf::Vect
 	return true;
 }
 
-} // namespace lum
+} // namespace ltbl

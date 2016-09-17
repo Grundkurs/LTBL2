@@ -46,15 +46,15 @@ class LightSystem : sf::NonCopyable
 		sf::Shader& getLightOverShapeShader();
 
 	private:
-		static void getPenumbrasPoint(std::vector<Penumbra> &penumbras, std::vector<int> &innerBoundaryIndices, std::vector<sf::Vector2f> &innerBoundaryVectors, std::vector<int> &outerBoundaryIndices, std::vector<sf::Vector2f> &outerBoundaryVectors, const sf::ConvexShape &shape, const sf::Vector2f &sourceCenter, float sourceRadius);
-		static void getPenumbrasDirection(std::vector<Penumbra> &penumbras, std::vector<int> &innerBoundaryIndices, std::vector<sf::Vector2f> &innerBoundaryVectors, std::vector<int> &outerBoundaryIndices, std::vector<sf::Vector2f> &outerBoundaryVectors, const sf::ConvexShape &shape, const sf::Vector2f &sourceDirection, float sourceRadius, float sourceDistance);
+		static void getPenumbrasPoint(std::vector<Penumbra> &penumbras, std::vector<int> &innerBoundaryIndices, std::vector<sf::Vector2f> &innerBoundaryVectors, std::vector<int> &outerBoundaryIndices, std::vector<sf::Vector2f> &outerBoundaryVectors, const LightShape& shape, const sf::Vector2f &sourceCenter, float sourceRadius);
+		static void getPenumbrasDirection(std::vector<Penumbra> &penumbras, std::vector<int> &innerBoundaryIndices, std::vector<sf::Vector2f> &innerBoundaryVectors, std::vector<int> &outerBoundaryIndices, std::vector<sf::Vector2f> &outerBoundaryVectors, const LightShape& shape, const sf::Vector2f &sourceDirection, float sourceRadius, float sourceDistance);
 
 	private:
 		sf::Texture mPenumbraTexture;
 		sf::Shader mUnshadowShader;
 		sf::Shader mLightOverShapeShader;
 
-		Quadtree mShapeQuadtree;
+		Quadtree mLightShapeQuadtree;
 		Quadtree mLightPointEmissionQuadtree;
 
 		std::unordered_set<LightPointEmission*> mPointEmissionLights;
@@ -76,4 +76,4 @@ class LightSystem : sf::NonCopyable
 		friend class LightShape;
 };
 
-} // namespace lum
+} // namespace ltbl

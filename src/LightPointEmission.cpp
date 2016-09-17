@@ -9,7 +9,9 @@ namespace ltbl
 {
 
 LightPointEmission::LightPointEmission(LightSystem& system)
-	: mSystem(system)
+	: BaseLight(system)
+	, mSprite()
+	, mLocalCastCenter()
 	, mSourceRadius(8.0f)
 	, mShadowOverExtendMultiplier(1.4f)
 {
@@ -17,7 +19,130 @@ LightPointEmission::LightPointEmission(LightSystem& system)
 
 sf::FloatRect LightPointEmission::getAABB() const 
 {
-	return getGlobalBounds();
+	return mSprite.getGlobalBounds();
+}
+
+void LightPointEmission::setTexture(sf::Texture& texture)
+{
+	mSprite.setTexture(texture);
+	quadtreeAABBChanged();
+}
+
+const sf::Texture* LightPointEmission::getTexture() const
+{
+	return mSprite.getTexture();
+}
+
+void LightPointEmission::setTextureRect(const sf::IntRect& rect)
+{
+	mSprite.setTextureRect(rect);
+	quadtreeAABBChanged();
+}
+
+const sf::IntRect& LightPointEmission::getTextureRect() const
+{
+	return mSprite.getTextureRect();
+}
+
+void LightPointEmission::setColor(const sf::Color& color)
+{
+	mSprite.setColor(color);
+}
+
+const sf::Color& LightPointEmission::getColor() const
+{
+	return mSprite.getColor();
+}
+
+const sf::Transform& LightPointEmission::getTransform() const
+{
+	return mSprite.getTransform();
+}
+
+void LightPointEmission::setPosition(const sf::Vector2f& position)
+{
+	mSprite.setPosition(position);
+	quadtreeAABBChanged();
+}
+
+void LightPointEmission::setPosition(float x, float y)
+{
+	mSprite.setPosition(x, y);
+	quadtreeAABBChanged();
+}
+
+void LightPointEmission::move(const sf::Vector2f& movement)
+{
+	mSprite.move(movement);
+	quadtreeAABBChanged();
+}
+
+void LightPointEmission::move(float x, float y)
+{
+	mSprite.move(x, y);
+	quadtreeAABBChanged();
+}
+
+const sf::Vector2f& LightPointEmission::getPosition() const
+{
+	return mSprite.getPosition();
+}
+
+void LightPointEmission::setRotation(float rotation)
+{
+	mSprite.setRotation(rotation);
+	quadtreeAABBChanged();
+}
+
+float LightPointEmission::getRotation() const
+{
+	return mSprite.getRotation();
+}
+
+void LightPointEmission::setScale(const sf::Vector2f& scale)
+{
+	mSprite.setScale(scale);
+	quadtreeAABBChanged();
+}
+
+void LightPointEmission::setScale(float x, float y)
+{
+	mSprite.setScale(x, y);
+	quadtreeAABBChanged();
+}
+
+void LightPointEmission::scale(const sf::Vector2f& scale)
+{
+	mSprite.scale(scale);
+	quadtreeAABBChanged();
+}
+
+void LightPointEmission::scale(float x, float y)
+{
+	mSprite.scale(x, y);
+	quadtreeAABBChanged();
+}
+
+const sf::Vector2f& LightPointEmission::getScale() const
+{
+	return mSprite.getScale();
+}
+
+void LightPointEmission::setOrigin(const sf::Vector2f& origin)
+{
+	mSprite.setOrigin(origin);
+	quadtreeAABBChanged();
+}
+
+void LightPointEmission::setOrigin(float x, float y)
+{
+	mSprite.setOrigin(x, y);
+	quadtreeAABBChanged();
+}
+
+const sf::Vector2f& LightPointEmission::getOrigin() const
+{
+	return mSprite.getOrigin();
 }
 
 void LightPointEmission::render(const sf::View& view,
@@ -129,13 +254,13 @@ void LightPointEmission::render(const sf::View& view,
 
 				sf::RenderStates penumbraRenderStates;
 				penumbraRenderStates.blendMode = sf::BlendAdd;
-				penumbraRenderStates.shader = &mSystem.getUnshadowShader();
+				penumbraRenderStates.shader = &getSystem().getUnshadowShader();
 
 				// Unmask with penumbras
 				for (unsigned j = 0; j < penumbras.size(); j++)
 				{
-					mSystem.getUnshadowShader().setUniform("lightBrightness", penumbras[j]._lightBrightness);
-					mSystem.getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
+					getSystem().getUnshadowShader().setUniform("lightBrightness", penumbras[j]._lightBrightness);
+					getSystem().getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
 
 					vertexArray[0].position = penumbras[j]._source;
 					vertexArray[1].position = penumbras[j]._source + vectorNormalize(penumbras[j]._lightEdge) * shadowExtension;
@@ -172,13 +297,13 @@ void LightPointEmission::render(const sf::View& view,
 
 				sf::RenderStates penumbraRenderStates;
 				penumbraRenderStates.blendMode = sf::BlendMultiply;
-				penumbraRenderStates.shader = &mSystem.getUnshadowShader();
+				penumbraRenderStates.shader = &getSystem().getUnshadowShader();
 
 				// Unmask with penumbras
 				for (unsigned j = 0; j < penumbras.size(); j++)
 				{
-					mSystem.getUnshadowShader().setUniform("lightBrightness", penumbras[j]._lightBrightness);
-					mSystem.getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
+					getSystem().getUnshadowShader().setUniform("lightBrightness", penumbras[j]._lightBrightness);
+					getSystem().getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
 
 					vertexArray[0].position = penumbras[j]._source;
 					vertexArray[1].position = penumbras[j]._source + vectorNormalize(penumbras[j]._lightEdge) * shadowExtension;
@@ -201,7 +326,7 @@ void LightPointEmission::render(const sf::View& view,
         if (pLightShape->renderLightOver()) 
 		{
             pLightShape->setFillColor(sf::Color::White);
-            lightTempTexture.draw(*pLightShape, &mSystem.getLightOverShapeShader());
+            lightTempTexture.draw(*pLightShape, &getSystem().getLightOverShapeShader());
         }
         else 
 		{
@@ -227,29 +352,19 @@ sf::Vector2f LightPointEmission::getLocalCastCenter() const
 
 sf::Vector2f LightPointEmission::getCastCenter() const
 {
-	sf::Transform t = getTransform();
-	t.translate(getOrigin());
+	sf::Transform t = mSprite.getTransform();
+	t.translate(mSprite.getOrigin());
 	return t.transformPoint(mLocalCastCenter);
 }
 
 void LightPointEmission::remove()
 {
-	mSystem.removeLight(this);
+	getSystem().removeLight(this);
 }
 
-void LightPointEmission::setTurnedOn(bool turnedOn)
+void LightPointEmission::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-	mTurnedOn = turnedOn;
+	target.draw(mSprite, states);
 }
 
-bool LightPointEmission::isTurnedOn() const
-{
-	return mTurnedOn;
-}
-
-void LightPointEmission::toggleTurnedOn()
-{
-	mTurnedOn = !mTurnedOn;
-}
-
-} // namespace lum
+} // namespace ltbl

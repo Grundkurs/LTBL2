@@ -29,4 +29,4 @@ sf::ConvexShape shapeFromRect(const sf::FloatRect &rect);
 sf::ConvexShape shapeFixWinding(const sf::ConvexShape &shape);
 bool rayIntersect(const sf::Vector2f &as, const sf::Vector2f &ad, const sf::Vector2f &bs, const sf::Vector2f &bd, sf::Vector2f &intersection);
 
-} // namespace lum
+} // namespace ltbl

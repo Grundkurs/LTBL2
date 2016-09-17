@@ -1,15 +1,18 @@
 #pragma once
 
 #include "Quadtree.hpp"
+#include "BaseLight.hpp"
 
 namespace ltbl 
 {
 
-class LightSystem;
-class LightDirectionEmission : public sf::Sprite
+class LightDirectionEmission : public BaseLight
 {
 	public:
 		LightDirectionEmission(LightSystem& system);
+
+		void setColor(const sf::Color& color);
+		const sf::Color& getColor() const;
 
 		void render(const sf::View &view, sf::RenderTexture &lightTempTexture, sf::RenderTexture &antumbraTempTexture, const std::vector<QuadtreeOccupant*> &shapes, float shadowExtension);
 
@@ -21,20 +24,14 @@ class LightDirectionEmission : public sf::Sprite
 
 		void remove();
 
-		void setTurnedOn(bool turnedOn);
-		bool isTurnedOn() const;
-		void toggleTurnedOn();
-
 	private:
-		LightSystem& mSystem;
+		sf::RectangleShape mShape;
 
 		sf::Vector2f mCastDirection;
 		float mCastAngle;
 
 		float mSourceRadius;
 		float mSourceDistance;
-
-		bool mTurnedOn;
 };
 
-} // namespace lum
+} // namespace ltbl

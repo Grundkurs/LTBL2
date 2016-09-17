@@ -7,7 +7,7 @@ namespace ltbl
 {
 
 LightSystem::LightSystem()
-	: mShapeQuadtree(sf::FloatRect())
+	: mLightShapeQuadtree(sf::FloatRect())
 	, mLightPointEmissionQuadtree(sf::FloatRect())
 	, mDirectionEmissionRange(1000.0f)
 	, mDirectionEmissionRadiusMultiplier(1.1f)
@@ -17,7 +17,7 @@ LightSystem::LightSystem()
 
 void LightSystem::create(const sf::FloatRect& rootRegion, const sf::Vector2u& imageSize)
 {
-    mShapeQuadtree.create(rootRegion, 10, 5);
+    mLightShapeQuadtree.create(rootRegion, 10, 5);
     mLightPointEmissionQuadtree.create(rootRegion, 10, 5);
 
 	using namespace resources;
@@ -42,6 +42,9 @@ void LightSystem::render(sf::RenderTarget& target)
 		update(target.getSize());
 	}
 
+	mLightShapeQuadtree.update();
+	mLightPointEmissionQuadtree.update();
+
     mCompositionTexture.clear(mAmbientColor);
     mCompositionTexture.setView(mCompositionTexture.getDefaultView());
 
@@ -64,7 +67,7 @@ void LightSystem::render(sf::RenderTarget& target)
 		{
 			// Query shapes this light is affected by
 			lightShapes.clear();
-			mShapeQuadtree.query(pPointEmissionLight->getAABB(), lightShapes);
+			mLightShapeQuadtree.query(pPointEmissionLight->getAABB(), lightShapes);
 
 			pPointEmissionLight->render(view, mLightTempTexture, mEmissionTempTexture, mAntumbraTempTexture, lightShapes);
 			mCompositionTexture.draw(lightTempSprite, sf::BlendAdd);
@@ -86,7 +89,7 @@ void LightSystem::render(sf::RenderTarget& target)
         directionShape.setRotation(directionEmissionLight->getCastAngle());
 
         std::vector<QuadtreeOccupant*> viewLightShapes;
-        mShapeQuadtree.query(directionShape, viewLightShapes);
+        mLightShapeQuadtree.query(directionShape, viewLightShapes);
 
         directionEmissionLight->render(view, mLightTempTexture, mAntumbraTempTexture, viewLightShapes, shadowExtension);
 
@@ -103,7 +106,7 @@ void LightSystem::render(sf::RenderTarget& target)
 LightShape* LightSystem::createLightShape()
 {
 	LightShape* shape = new LightShape(*this);
-	mShapeQuadtree.addOccupant(shape);
+	mLightShapeQuadtree.addOccupant(shape);
 	mLightShapes.insert(shape);
 	return shape;
 }
@@ -113,7 +116,7 @@ void LightSystem::removeShape(LightShape* shape)
 	auto itr = mLightShapes.find(shape);
 	if (itr != mLightShapes.end()) 
 	{
-		mShapeQuadtree.removeOccupant(*itr);
+		mLightShapeQuadtree.removeOccupant(*itr);
 		mLightShapes.erase(itr);
 		delete shape;
 	}
@@ -186,7 +189,7 @@ sf::Shader& LightSystem::getLightOverShapeShader()
 	return mLightOverShapeShader;
 }
 
-void LightSystem::getPenumbrasPoint(std::vector<Penumbra> &penumbras, std::vector<int> &innerBoundaryIndices, std::vector<sf::Vector2f> &innerBoundaryVectors, std::vector<int> &outerBoundaryIndices, std::vector<sf::Vector2f> &outerBoundaryVectors, const sf::ConvexShape &shape, const sf::Vector2f &sourceCenter, float sourceRadius)
+void LightSystem::getPenumbrasPoint(std::vector<Penumbra> &penumbras, std::vector<int> &innerBoundaryIndices, std::vector<sf::Vector2f> &innerBoundaryVectors, std::vector<int> &outerBoundaryIndices, std::vector<sf::Vector2f> &outerBoundaryVectors, const LightShape& shape, const sf::Vector2f &sourceCenter, float sourceRadius)
 {
 	const int numPoints = shape.getPointCount();
 
@@ -509,7 +512,7 @@ void LightSystem::getPenumbrasPoint(std::vector<Penumbra> &penumbras, std::vecto
 	}
 }
 
-void LightSystem::getPenumbrasDirection(std::vector<Penumbra> &penumbras, std::vector<int> &innerBoundaryIndices, std::vector<sf::Vector2f> &innerBoundaryVectors, std::vector<int> &outerBoundaryIndices, std::vector<sf::Vector2f> &outerBoundaryVectors, const sf::ConvexShape &shape, const sf::Vector2f &sourceDirection, float sourceRadius, float sourceDistance) {
+void LightSystem::getPenumbrasDirection(std::vector<Penumbra> &penumbras, std::vector<int> &innerBoundaryIndices, std::vector<sf::Vector2f> &innerBoundaryVectors, std::vector<int> &outerBoundaryIndices, std::vector<sf::Vector2f> &outerBoundaryVectors, const LightShape& shape, const sf::Vector2f &sourceDirection, float sourceRadius, float sourceDistance) {
 	const int numPoints = shape.getPointCount();
 
 	innerBoundaryIndices.reserve(2);
@@ -767,4 +770,4 @@ void LightSystem::getPenumbrasDirection(std::vector<Penumbra> &penumbras, std::v
 	}
 }
 
-} // namespace lum
+} // namespace ltbl

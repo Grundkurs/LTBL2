@@ -1,17 +1,47 @@
 #pragma once
 
 #include "Quadtree.hpp"
+#include "BaseLight.hpp"
 
 namespace ltbl
 {
     
-class LightSystem;
-class LightPointEmission : public QuadtreeOccupant, public sf::Sprite
+class LightPointEmission : public QuadtreeOccupant, public BaseLight, public sf::Drawable
 {
     public:
 		LightPointEmission(LightSystem& system);
 
 		sf::FloatRect getAABB() const;
+
+		void setTexture(sf::Texture& texture);
+		const sf::Texture* getTexture() const;
+
+		void setTextureRect(const sf::IntRect& rect);
+		const sf::IntRect& getTextureRect() const;
+
+		void setColor(const sf::Color& color);
+		const sf::Color& getColor() const;
+
+		const sf::Transform& getTransform() const;
+
+		void setPosition(const sf::Vector2f& position);
+		void setPosition(float x, float y);
+		void move(const sf::Vector2f& movement);
+		void move(float x, float y);
+		const sf::Vector2f& getPosition() const;
+
+		void setRotation(float rotation);
+		float getRotation() const;
+
+		void setScale(const sf::Vector2f& scale);
+		void setScale(float x, float y);
+		void scale(const sf::Vector2f& scale);
+		void scale(float x, float y);
+		const sf::Vector2f& getScale() const;
+
+		void setOrigin(const sf::Vector2f& origin);
+		void setOrigin(float x, float y);
+		const sf::Vector2f& getOrigin() const;
 
         void render(const sf::View& view,
                     sf::RenderTexture& lightTempTexture, sf::RenderTexture& emissionTempTexture, sf::RenderTexture& antumbraTempTexture,
@@ -24,20 +54,17 @@ class LightPointEmission : public QuadtreeOccupant, public sf::Sprite
 
 		void remove();
 
-		void setTurnedOn(bool turnedOn);
-		bool isTurnedOn() const;
-		void toggleTurnedOn();
+	private:
+		void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 
 	private:
-		LightSystem& mSystem;
+		sf::Sprite mSprite;
 
 		sf::Vector2f mLocalCastCenter;
 
 		float mSourceRadius;
 
 		float mShadowOverExtendMultiplier;
-
-		bool mTurnedOn;
 };
 
-} // namespace lum
+} // namespace ltbl

@@ -22,9 +22,9 @@ Changes
 - Light management : use create...() to create your light and add it to the system and no shared pointers
 - Quadtree : rebuilt entirely
 - LightSystem : simplified render call and minor performance improvements
+- LightShape & LightPointEmission are updated with the quadtree
+- LightDirectionEmission has been simplified
 - Remove/change some hardcoded value
-- LightPointEmission and LightPointDirection inherit from sf::Sprite 
-- LightShape inherit from sf::ConvexShape
 - Add resources direclty in C++ (PenumbraTexture, UnshadowShader & LightOverShapeShader)
 
 License

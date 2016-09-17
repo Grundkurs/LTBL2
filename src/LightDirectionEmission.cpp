@@ -8,12 +8,23 @@ namespace ltbl
 {
 
 LightDirectionEmission::LightDirectionEmission(LightSystem& system)
-	: mSystem(system)
+	: BaseLight(system)
+	, mShape()
 	, mCastDirection(0.f, 1.f)
 	, mCastAngle(90.f)
 	, mSourceRadius(5.0f)
 	, mSourceDistance(100.0f)
 {
+}
+
+void LightDirectionEmission::setColor(const sf::Color& color)
+{
+	mShape.setFillColor(color);
+}
+
+const sf::Color& LightDirectionEmission::getColor() const
+{
+	return mShape.getFillColor();
 }
 
 void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lightTempTexture, sf::RenderTexture &antumbraTempTexture, const std::vector<QuadtreeOccupant*> &shapes, float shadowExtension)
@@ -69,13 +80,13 @@ void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lig
 			{
 				sf::RenderStates states;
 				states.blendMode = sf::BlendAdd;
-				states.shader = &mSystem.getUnshadowShader();
+				states.shader = &getSystem().getUnshadowShader();
 
 				// Unmask with penumbras
 				for (unsigned j = 0; j < penumbras.size(); j++)
 				{
-					mSystem.getUnshadowShader().setUniform("lightBrightness", penumbras[j]._lightBrightness);
-					mSystem.getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
+					getSystem().getUnshadowShader().setUniform("lightBrightness", penumbras[j]._lightBrightness);
+					getSystem().getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
 
 					vertexArray[0].position = penumbras[j]._source;
 					vertexArray[1].position = penumbras[j]._source + vectorNormalize(penumbras[j]._lightEdge) * totalShadowExtension;
@@ -109,9 +120,9 @@ void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lig
         }
     }
 
-    // Multiplicatively blend the light over the shadows
     lightTempTexture.setView(lightTempTexture.getDefaultView());
-    lightTempTexture.draw(*this, sf::BlendMultiply);
+	mShape.setSize(lightTempTexture.getDefaultView().getSize());
+    lightTempTexture.draw(mShape, sf::BlendMultiply);
 
     lightTempTexture.display();
 }
@@ -141,22 +152,7 @@ float LightDirectionEmission::getCastAngle() const
 
 void LightDirectionEmission::remove()
 {
-	mSystem.removeLight(this);
+	getSystem().removeLight(this);
 }
 
-void LightDirectionEmission::setTurnedOn(bool turnedOn)
-{
-	mTurnedOn = turnedOn;
-}
-
-bool LightDirectionEmission::isTurnedOn() const
-{
-	return mTurnedOn;
-}
-
-void LightDirectionEmission::toggleTurnedOn()
-{
-	mTurnedOn = !mTurnedOn;
-}
-
-} // namespace lum
+} // namespace ltbl
