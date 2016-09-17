@@ -18,9 +18,15 @@ class LightShape : public QuadtreeOccupant, public sf::ConvexShape
 
 		void remove();
 
+		void setTurnedOn(bool turnedOn);
+		bool isTurnedOn() const;
+		void toggleTurnedOn();
+
 	private:
 		LightSystem& mSystem;
 		bool mRenderLightOver;
+
+		bool mTurnedOn;
 };
 
 } // namespace ltbl

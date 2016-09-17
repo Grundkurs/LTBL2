@@ -1,42 +1,11 @@
 #include "Quadtree.hpp"
 
-#include <algorithm>
-#include <assert.h>
-
 namespace ltbl
 {
 
-QuadtreeOccupant::QuadtreeOccupant() 
-	: mQuadtreeNode(nullptr)
-	, mQuadtree(nullptr)
-	, mAwake(true)
-	, mTurnedOn(true)
+QuadtreeOccupant::QuadtreeOccupant()
+	: mAwake(true)
 {
-}
-
-void QuadtreeOccupant::quadtreeUpdate()
-{
-	if (mQuadtreeNode != nullptr)
-	{
-		mQuadtreeNode->update(this);
-	}
-	else
-	{
-		mQuadtree->mOutsideRoot.erase(this);
-		mQuadtree->add(this);
-	}
-}
-
-void QuadtreeOccupant::quadtreeRemove()
-{
-	if (mQuadtreeNode != nullptr)
-	{
-		mQuadtreeNode->remove(this);
-	}
-	else
-	{
-		mQuadtree->mOutsideRoot.erase(this);
-	}
 }
 
 void QuadtreeOccupant::setAwake(bool awake)
@@ -54,831 +23,566 @@ void QuadtreeOccupant::toggleAwake()
 	mAwake = !mAwake;
 }
 
-void QuadtreeOccupant::setTurnedOn(bool turnedOn)
+void QuadtreeOccupant::quadtreeAABBChanged()
 {
-	mTurnedOn = turnedOn;
+	mAABBChanged = true;
 }
 
-bool QuadtreeOccupant::isTurnedOn() const
-{
-	return mTurnedOn;
-}
-
-void QuadtreeOccupant::toggleTurnedOn()
-{
-	mTurnedOn = !mTurnedOn;
-}
-
-QuadtreeNode::QuadtreeNode()
-	: mHasChildren(false)
-	, mNumOccupantsBelow(0)
-	, mParent(nullptr)
-	, mQuadtree(nullptr)
-	, mRegion(sf::FloatRect())
-	, mLevel(0)
-{
-}
-
-QuadtreeNode::QuadtreeNode(const sf::FloatRect &region, int level, QuadtreeNode* pParent, Quadtree* pQuadtree)
-	: mHasChildren(false)
-	, mNumOccupantsBelow(0)
-	, mParent(pParent)
-	, mQuadtree(pQuadtree)
-	, mRegion(region)
+Quadtree::Quadtree(const sf::FloatRect& region, unsigned int maxOccupants, unsigned int maxLevels, Quadtree* parent, unsigned int level, unsigned int type)
+	: mRegion(region)
+	, mMaxOccupants(maxOccupants)
+	, mMaxLevels(maxLevels)
+	, mParent(parent)
 	, mLevel(level)
+	, mType(type)
 {
 }
 
-void QuadtreeNode::create(const sf::FloatRect &region, int level, QuadtreeNode* pParent, Quadtree* pQuadtree)
+void Quadtree::create(const sf::FloatRect& region, unsigned int maxOccupants, unsigned int maxLevels, Quadtree* parent, unsigned int level, unsigned int type)
 {
-	mHasChildren = false;
+	clear();
+
 	mRegion = region;
+	mMaxOccupants = maxOccupants;
+	mMaxLevels = maxLevels;
+	mParent = parent;
 	mLevel = level;
-	mParent = pParent;
-	mQuadtree = pQuadtree;
+	mType = type;
 }
 
-Quadtree* QuadtreeNode::getTree() const
+void Quadtree::addOccupant(QuadtreeOccupant* oc)
 {
-	return mQuadtree;
+	if (oc != nullptr)
+	{
+		if (mRegion.intersects(oc->getAABB()))
+		{
+			if (hasChildren())
+			{
+				bool handled = false;
+				for (std::size_t i = 0; i < mChildren.size(); i++)
+				{
+					if (!handled && mChildren[i]->mRegion.intersects(oc->getAABB()))
+					{
+						mChildren[i]->addOccupant(oc);
+						handled = true;
+					}
+				}
+				if (handled)
+				{
+					return;
+				}
+			}
+			else
+			{
+				mOccupants.insert(oc);
+
+				if (mOccupants.size() >= mMaxOccupants && mLevel < mMaxLevels)
+				{
+					split();
+				}
+
+				return;
+			}
+		}
+
+		if (mParent != nullptr)
+		{
+			mParent->addOccupant(oc);
+		}
+		else
+		{
+			mOutsideOccupants.insert(oc);
+		}
+	}
 }
 
-void QuadtreeNode::add(QuadtreeOccupant* oc)
+bool Quadtree::removeOccupant(QuadtreeOccupant* oc)
 {
-	assert(oc != nullptr);
-
-	mNumOccupantsBelow++;
-
-	// See if the occupant fits into any children (if there are any)
 	if (hasChildren())
 	{
-		if (addToChildren(oc))
+		bool removed = false;
+		for (std::size_t i = 0; i < mChildren.size(); i++)
 		{
-			return;
+			if (mChildren[i]->mRegion.intersects(oc->getAABB()))
+			{
+				if (mChildren[i]->removeOccupant(oc))
+				{
+					removed = true;
+				}
+			}
+		}
+		if (removed)
+		{
+			if (getNumOccupantsBelow() < mMaxOccupants)
+			{
+				unsplit();
+			}
+			return true;
 		}
 	}
 	else
 	{
-		// Check if we need a new partition
-		if (mOccupants.size() >= mQuadtree->getMaxNumNodeOccupants() && static_cast<size_t>(mLevel) < mQuadtree->getMaxLevels())
+		auto itr = mOccupants.find(oc);
+		if (itr != mOccupants.end())
 		{
-			partition();
-			if (addToChildren(oc))
-			{
-				return;
-			}
+			mOccupants.erase(itr);
+			return true;
 		}
 	}
 
-	// Did not fit in anywhere, add to this level, even if it goes over the maximum size
-	addToThisLevel(oc);
-}
-
-const sf::FloatRect& QuadtreeNode::getRegion() const
-{
-	return mRegion;
-}
-
-void QuadtreeNode::getAllOccupantsBelow(std::vector<QuadtreeOccupant*>& occupants)
-{
-	// Iteratively parse subnodes in order to collect all occupants below this node
-	std::list<QuadtreeNode*> open;
-	open.push_back(this);
-
-	while (!open.empty())
+	if (mOutsideOccupants.size() > 0)
 	{
-		// Depth-first (results in less memory usage), remove objects from open list
-		QuadtreeNode* pCurrent = open.back();
-		open.pop_back();
-
-		// Get occupants
-		for (std::unordered_set<QuadtreeOccupant*>::iterator it = pCurrent->mOccupants.begin(); it != pCurrent->mOccupants.end(); it++)
+		auto itr = mOutsideOccupants.find(oc);
+		if (itr != mOutsideOccupants.end())
 		{
-			if ((*it) != nullptr)
-			{
-				// Add to this node
-				occupants.push_back(*it);
-			}
-		}
-
-		// If the node has children, add them to the open list
-		if (pCurrent->hasChildren())
-		{
-			for (int i = 0; i < 4; i++)
-			{
-				open.push_back(pCurrent->mChildren[i].get());
-			}
+			mOutsideOccupants.erase(itr);
+			return true;
 		}
 	}
-}
 
-void QuadtreeNode::getAllOccupantsBelow(std::unordered_set<QuadtreeOccupant*>& occupants)
-{
-	// Iteratively parse subnodes in order to collect all occupants below this node
-	std::list<QuadtreeNode*> open;
-	open.push_back(this);
-
-	while (!open.empty())
-	{
-		// Depth-first (results in less memory usage), remove objects from open list
-		QuadtreeNode* pCurrent = open.back();
-		open.pop_back();
-
-		// Get occupants
-		for (std::unordered_set<QuadtreeOccupant*>::iterator it = pCurrent->mOccupants.begin(); it != pCurrent->mOccupants.end(); it++)
-		{
-			if ((*it) == nullptr)
-			{
-				// Add to this node
-				occupants.insert(*it);
-			}
-		}
-
-		// If the node has children, add them to the open list
-		if (pCurrent->hasChildren())
-		{
-			for (int i = 0; i < 4; i++)
-			{
-				open.push_back(pCurrent->mChildren[i].get());
-			}
-		}
-	}
-}
-
-int QuadtreeNode::getNumOccupantsBelow() const
-{
-	return mNumOccupantsBelow;
-}
-
-bool QuadtreeNode::hasChildren() const
-{
-	return mHasChildren;
-}
-
-void QuadtreeNode::getPossibleOccupantPosition(QuadtreeOccupant* oc, sf::Vector2i& point)
-{
-	// Compare the center of the AABB of the occupant to that of this node to determine
-	// which child it may (possibly, not certainly) fit in
-	const sf::Vector2f &occupantCenter = rectCenter(oc->getAABB());
-	const sf::Vector2f &nodeRegionCenter = rectCenter(mRegion);
-
-	point.x = occupantCenter.x > nodeRegionCenter.x ? 1 : 0;
-	point.y = occupantCenter.y > nodeRegionCenter.y ? 1 : 0;
-}
-
-void QuadtreeNode::addToThisLevel(QuadtreeOccupant* oc)
-{
-	if (mOccupants.find(oc) != mOccupants.end())
-	{
-		return;
-	}
-	mOccupants.insert(oc);
-	oc->mQuadtreeNode = this;
-}
-
-bool QuadtreeNode::addToChildren(QuadtreeOccupant* oc)
-{
-	assert(hasChildren());
-
-	sf::Vector2i position;
-
-	getPossibleOccupantPosition(oc, position);
-
-	QuadtreeNode* pChild = mChildren[position.x + position.y * 2].get();
-
-	// See if the occupant fits in the child at the selected position
-	if (rectContains(pChild->mRegion, oc->getAABB()))
-	{
-		// Fits, so can add to the child and finish
-		pChild->add(oc);
-		return true;
-	}
 	return false;
 }
 
-void QuadtreeNode::destroyChildren()
+bool Quadtree::update()
 {
-	for (int i = 0; i < 4; i++)
-	{
-		mChildren[i].reset();
-	}
-	mHasChildren = false;
-}
-
-void QuadtreeNode::getOccupants(std::unordered_set<QuadtreeOccupant*>& occupants)
-{
-	// Iteratively parse subnodes in order to collect all occupants below this node
-	std::list<QuadtreeNode*> open;
-	open.push_back(this);
-
-	while (!open.empty())
-	{
-		// Depth-first (results in less memory usage), remove objects from open list
-		QuadtreeNode* pCurrent = open.back();
-		open.pop_back();
-
-		// Get occupants
-		for (std::unordered_set<QuadtreeOccupant*>::iterator it = pCurrent->mOccupants.begin(); it != pCurrent->mOccupants.end(); it++)
-		{
-			if ((*it) != nullptr)
-			{
-				// Assign new node
-				(*it)->mQuadtreeNode = this;
-
-				// Add to this node
-				occupants.insert(*it);
-			}
-		}
-
-		// If the node has children, add them to the open list
-		if (pCurrent->hasChildren())
-		{
-			for (int i = 0; i < 4; i++)
-			{
-				open.push_back(pCurrent->mChildren[i].get());
-			}
-		}
-	}
-}
-
-void QuadtreeNode::partition()
-{
-	assert(!hasChildren());
-
-	sf::Vector2f halfRegionDims = rectHalfDims(mRegion);
-	sf::Vector2f regionLowerBound = rectLowerBound(mRegion);
-	sf::Vector2f regionCenter = rectCenter(mRegion);
-
-	int nextLowerLevel = mLevel - 1;
-
-	for (int x = 0; x < 2; x++)
-	{
-		for (int y = 0; y < 2; y++)
-		{
-			sf::Vector2f offset(x * halfRegionDims.x, y * halfRegionDims.y);
-
-			sf::FloatRect childAABB = rectFromBounds(regionLowerBound + offset, regionCenter + offset);
-
-			// Scale up AABB by the oversize multiplier
-			sf::Vector2f newHalfDims = rectHalfDims(childAABB);
-			sf::Vector2f center = rectCenter(childAABB);
-			childAABB = rectFromBounds(center - newHalfDims, center + newHalfDims);
-
-			mChildren[x + y * 2].reset(new QuadtreeNode(childAABB, nextLowerLevel, this, mQuadtree));
-		}
-	}
-
-	mHasChildren = true;
-}
-
-void QuadtreeNode::merge()
-{
+	bool moved = false;
 	if (hasChildren())
 	{
-		// Place all occupants at lower levels into this node
-		getOccupants(mOccupants);
-		destroyChildren();
-	}
-}
-
-void QuadtreeNode::update(QuadtreeOccupant* oc)
-{
-	if (oc == nullptr)
-	{
-		return;
-	}
-
-	if (!mOccupants.empty())
-	{
-		// Remove, may be re-added to this node later
-		mOccupants.erase(oc);
-	}
-
-	// Propogate upwards, looking for a node that has room (the current one may still have room)
-	QuadtreeNode* pNode = this;
-
-	while (pNode != nullptr)
-	{
-		pNode->mNumOccupantsBelow--;
-
-		// If has room for 1 more, found a spot
-		if (rectContains(pNode->mRegion, oc->getAABB()))
+		for (std::size_t i = 0; i < mChildren.size(); i++)
 		{
-			break;
-		}
-
-		pNode = pNode->mParent;
-	}
-
-	// If no node that could contain the occupant was found, add to outside root set
-	if (pNode == nullptr)
-	{
-		assert(mQuadtree != nullptr);
-
-		if (mQuadtree->mOutsideRoot.find(oc) != mQuadtree->mOutsideRoot.end())
-		{
-			return;
-		}
-
-		mQuadtree->mOutsideRoot.insert(oc);
-
-		oc->mQuadtreeNode = nullptr;
-	}
-	else // Add to the selected node
-	{
-		pNode->add(oc);
-	}
-}
-
-void QuadtreeNode::remove(QuadtreeOccupant* oc)
-{
-	assert(!mOccupants.empty());
-
-	// Remove from node
-	mOccupants.erase(oc);
-
-	if (oc == nullptr)
-	{
-		return;
-	}
-
-	// Propogate upwards, merging if there are enough occupants in the node
-	QuadtreeNode* pNode = this;
-
-	while (pNode != nullptr)
-	{
-		pNode->mNumOccupantsBelow--;
-
-		if (pNode->mNumOccupantsBelow > 0 && static_cast<size_t>(pNode->mNumOccupantsBelow) >= mQuadtree->getMinNumNodeOccupants())
-		{
-			pNode->merge();
-			break;
-		}
-
-		pNode = pNode->mParent;
-	}
-}
-
-void QuadtreeNode::removeForDeletion(std::unordered_set<QuadtreeOccupant*>& occupants)
-{
-	// Iteratively parse subnodes in order to collect all occupants below this node
-	std::list<QuadtreeNode*> open;
-	open.push_back(this);
-
-	while (!open.empty())
-	{
-		// Depth-first (results in less memory usage), remove objects from open list
-		QuadtreeNode* pCurrent = open.back();
-		open.pop_back();
-
-		// Get occupants
-		for (std::unordered_set<QuadtreeOccupant*>::iterator it = pCurrent->mOccupants.begin(); it != pCurrent->mOccupants.end(); it++)
-		{
-			if ((*it) != nullptr)
+			if (mChildren[i]->update())
 			{
-				// Since will be deleted, remove the reference
-				(*it)->mQuadtreeNode = nullptr;
-
-				// Add to this node
-				occupants.insert(*it);
+				moved = true;
 			}
 		}
 
-		// If the node has children, add them to the open list
-		if (pCurrent->hasChildren())
+		if (mOutsideOccupants.size() > 0)
 		{
-			for (int i = 0; i < 4; i++)
+			for (auto itr = mOutsideOccupants.begin(); itr != mOutsideOccupants.end(); )
 			{
-				open.push_back(pCurrent->mChildren[i].get());
-			}
-		}
-	}
-}
-
-Quadtree::Quadtree()
-    : mMinNumNodeOccupants(3)
-    , mMaxNumNodeOccupants(6)
-    , mMaxLevels(40)
-    , mOversizeMultiplier(1.0f)
-{
-}
-
-Quadtree::Quadtree(const Quadtree& other)
-{
-	*this = other;
-}
-
-void Quadtree::operator=(const Quadtree &other) 
-{
-    mMinNumNodeOccupants = other.mMinNumNodeOccupants;
-    mMaxNumNodeOccupants = other.mMaxNumNodeOccupants;
-    mMaxLevels = other.mMaxLevels;
-    mOversizeMultiplier = other.mOversizeMultiplier;
-    mOutsideRoot = other.mOutsideRoot;
-    if (other.mRootNode != nullptr) 
-	{
-        mRootNode.reset(new QuadtreeNode());
-        recursiveCopy(mRootNode.get(), other.mRootNode.get(), nullptr);
-    }
-}
-
-void Quadtree::queryRegion(std::vector<QuadtreeOccupant*> &result, const sf::FloatRect &region) 
-{
-    // Query outside root elements
-    for (auto oc : mOutsideRoot) 
-	{
-        // Intersects, add to list
-		if (oc != nullptr && region.intersects(oc->getAABB()))
-		{
-			result.push_back(oc);
-		}
-    }
-
-    std::list<QuadtreeNode*> open;
-    open.push_back(mRootNode.get());
-
-    while (!open.empty()) 
-	{
-        // Depth-first (results in less memory usage), remove objects from open list
-        QuadtreeNode* pCurrent = open.back();
-        open.pop_back();
-
-        if (region.intersects(pCurrent->mRegion)) 
-		{
-            for (auto oc : pCurrent->mOccupants) 
-			{
-                // Visible, add to list
-				if (oc != nullptr && region.intersects(oc->getAABB()) && oc->isAwake())
+				bool erase = false;
+				if ((*itr) != nullptr)
 				{
-					result.push_back(oc);
-				}
-            }
-
-            // Add children to open list if they intersect the region
-			if (pCurrent->hasChildren())
-			{
-				for (int i = 0; i < 4; i++)
-				{
-					if (pCurrent->mChildren[i]->getNumOccupantsBelow() != 0)
+					if ((*itr)->mAABBChanged && (*itr)->isAwake())
 					{
-						open.push_back(pCurrent->mChildren[i].get());
+						(*itr)->mAABBChanged = false;
+						if (mRegion.intersects((*itr)->getAABB()))
+						{
+							addOccupant(*itr);
+							erase = true;
+						}
+					}
+				}
+				else
+				{
+					erase = true;
+				}
+				if (erase)
+				{
+					itr = mOutsideOccupants.erase(itr);
+				}
+				else
+				{
+					++itr;
+				}
+			}
+		}
+
+		if (moved)
+		{
+			if (getNumOccupantsBelow() < mMaxOccupants)
+			{
+				unsplit();
+			}
+		}
+	}
+	else
+	{
+		for (auto itr = mOccupants.begin(); itr != mOccupants.end(); )
+		{
+			bool erase = false;
+			if ((*itr) != nullptr)
+			{
+				if ((*itr)->mAABBChanged && (*itr)->isAwake())
+				{
+					(*itr)->mAABBChanged = false;
+					if (!mRegion.intersects((*itr)->getAABB()))
+					{
+						if (mParent != nullptr)
+						{
+							mParent->addOccupant(*itr);
+						}
+						else
+						{
+							mOutsideOccupants.insert(*itr);
+						}
+						erase = true;
 					}
 				}
 			}
-        }
-    }
-}
-
-void Quadtree::queryPoint(std::vector<QuadtreeOccupant*> &result, const sf::Vector2f &p) 
-{
-    // Query outside root elements
-    for (std::unordered_set<QuadtreeOccupant*>::iterator it = mOutsideRoot.begin(); it != mOutsideRoot.end(); it++) 
-	{
-        QuadtreeOccupant* oc = *it;
-		if (oc != nullptr && oc->getAABB().contains(p))
-		{
-			// Intersects, add to list
-			result.push_back(oc);
-		}
-    }
-
-    std::list<QuadtreeNode*> open;
-    open.push_back(mRootNode.get());
-
-    while (!open.empty()) 
-	{
-        // Depth-first (results in less memory usage), remove objects from open list
-        QuadtreeNode* pCurrent = open.back();
-        open.pop_back();
-
-        if (pCurrent->mRegion.contains(p)) 
-		{
-            for (std::unordered_set<QuadtreeOccupant*>::iterator it = pCurrent->mOccupants.begin(); it != pCurrent->mOccupants.end(); it++) 
+			else
 			{
-                QuadtreeOccupant* oc = *it;
-				if (oc != nullptr && oc->getAABB().contains(p) && oc->isAwake())
-				{
-					// Visible, add to list
-					result.push_back(oc);
-				}
-            }
-
-            // Add children to open list if they intersect the region
-			if (pCurrent->hasChildren())
-			{
-				for (int i = 0; i < 4; i++)
-				{
-					if (pCurrent->mChildren[i]->getNumOccupantsBelow() != 0)
-					{
-						open.push_back(pCurrent->mChildren[i].get());
-					}
-				}
+				erase = true;
 			}
-        }
-    }
-}
-
-void Quadtree::queryShape(std::vector<QuadtreeOccupant*> &result, const sf::ConvexShape &shape) 
-{
-    // Query outside root elements
-    for (std::unordered_set<QuadtreeOccupant*>::iterator it = mOutsideRoot.begin(); it != mOutsideRoot.end(); it++) 
-	{
-        QuadtreeOccupant* oc = *it;
-		if (oc != nullptr && shapeIntersection(shapeFromRect(oc->getAABB()), shape))
-		{
-			// Intersects, add to list
-			result.push_back(oc);
-		}
-    }
-
-    std::list<QuadtreeNode*> open;
-    open.push_back(mRootNode.get());
-
-    while (!open.empty()) 
-	{
-        // Depth-first (results in less memory usage), remove objects from open list
-        QuadtreeNode* pCurrent = open.back();
-        open.pop_back();
-
-        if (shapeIntersection(shapeFromRect(pCurrent->mRegion), shape)) 
-		{
-            for (std::unordered_set<QuadtreeOccupant*>::iterator it = pCurrent->mOccupants.begin(); it != pCurrent->mOccupants.end(); it++) 
+			if (erase)
 			{
-                QuadtreeOccupant* oc = *it;
-                sf::ConvexShape r = shapeFromRect(oc->getAABB());
-				if (oc != nullptr && shapeIntersection(shapeFromRect(oc->getAABB()), shape) && oc->isAwake())
-				{
-					// Visible, add to list
-					result.push_back(oc);
-				}
-            }
-
-            // Add children to open list if they intersect the region
-			if (pCurrent->hasChildren())
-			{
-				for (int i = 0; i < 4; i++)
-				{
-					if (pCurrent->mChildren[i]->getNumOccupantsBelow() != 0)
-					{
-						open.push_back(pCurrent->mChildren[i].get());
-					}
-				}
+				itr = mOccupants.erase(itr);
+				moved = true;
 			}
-        }
-    }
-}
-
-size_t Quadtree::getMinNumNodeOccupants() const
-{
-	return mMinNumNodeOccupants;
-}
-
-size_t Quadtree::getMaxNumNodeOccupants() const
-{
-	return mMaxNumNodeOccupants;
-}
-
-size_t Quadtree::getMaxLevels() const
-{
-	return mMaxLevels;
-}
-
-float Quadtree::getOversizeMultiplier() const
-{
-	return mOversizeMultiplier;
+			else
+			{
+				++itr;
+			}
+		}
+	}
+	return moved;
 }
 
 void Quadtree::clear()
 {
-	mRootNode.reset();
-}
-
-void Quadtree::create(sf::FloatRect const& rootRegion)
-{
-	mRootNode = std::unique_ptr<QuadtreeNode>(new QuadtreeNode(rootRegion, 0, nullptr, this));
-}
-
-bool Quadtree::created() const
-{
-	return mRootNode != nullptr;
-}
-
-const sf::FloatRect Quadtree::getRootRegion() const
-{
-	if (mRootNode != nullptr)
+	if (hasChildren())
 	{
-		return mRootNode->getRegion();
-	}
-	return sf::FloatRect();
-}
-
-void Quadtree::onRemoval()
-{
-}
-
-void Quadtree::setQuadtree(QuadtreeOccupant* oc)
-{
-	oc->mQuadtree = this;
-}
-
-void Quadtree::recursiveCopy(QuadtreeNode* thisNode, QuadtreeNode* otherNode, QuadtreeNode* thisParent)
-{
-	thisNode->mHasChildren = otherNode->mHasChildren;
-	thisNode->mLevel = otherNode->mLevel;
-	thisNode->mNumOccupantsBelow = otherNode->mNumOccupantsBelow;
-	thisNode->mOccupants = otherNode->mOccupants;
-	thisNode->mRegion = otherNode->mRegion;
-	thisNode->mParent = thisParent;
-	thisNode->mQuadtree = this;
-	if (thisNode->hasChildren())
-	{
-		for (int i = 0; i < 4; i++)
+		for (std::size_t i = 0; i < mChildren.size(); i++)
 		{
-			thisNode->mChildren[i].reset(new QuadtreeNode());
-			recursiveCopy(thisNode->mChildren[i].get(), otherNode->mChildren[i].get(), thisNode);
+			mChildren[i]->clear();
+			delete mChildren[i];
+			mChildren[i] = nullptr;
+		}
+		mChildren.clear();
+	}
+
+	mOccupants.clear();
+	mOutsideOccupants.clear();
+
+	mParent = nullptr;
+}
+
+void Quadtree::query(const sf::FloatRect& area, std::vector<QuadtreeOccupant*>& occupants)
+{
+	for (auto itr = mOutsideOccupants.begin(); itr != mOutsideOccupants.end(); itr++)
+	{
+		if ((*itr) != nullptr && (*itr)->isAwake() && area.intersects((*itr)->getAABB()))
+		{
+			occupants.push_back(*itr);
 		}
 	}
-}
 
-StaticQuadtree::StaticQuadtree()
-{
-}
-
-StaticQuadtree::StaticQuadtree(sf::FloatRect const& rootRegion)
-{
-	create(rootRegion);
-}
-
-void StaticQuadtree::add(QuadtreeOccupant* oc)
-{
-	assert(created());
-
-	setQuadtree(oc);
-
-	// If the occupant fits in the root node
-	if (rectContains(mRootNode->getRegion(), oc->getAABB()))
+	std::list<Quadtree*> open;
+	open.push_back(this);
+	while (!open.empty())
 	{
-		mRootNode->add(oc);
-	}
-	else
-	{
-		mOutsideRoot.insert(oc);
-	}
-}
-
-DynamicQuadtree::DynamicQuadtree()
-	: mMinOutsideRoot(1)
-	, mMaxOutsideRoot(8)
-{
-}
-
-DynamicQuadtree::DynamicQuadtree(sf::FloatRect const& rootRegion)
-	: mMinOutsideRoot(1)
-	, mMaxOutsideRoot(8)
-{
-	create(rootRegion);
-}
-
-void DynamicQuadtree::add(QuadtreeOccupant* oc)
-{
-	assert(created());
-
-	// If the occupant fits in the root node
-	if (rectContains(mRootNode->getRegion(), oc->getAABB()))
-	{
-		mRootNode->add(oc);
-	}
-	else
-	{
-		mOutsideRoot.insert(oc);
-	}
-
-	setQuadtree(oc);
-}
-
-void DynamicQuadtree::trim()
-{
-	if (mRootNode.get() == nullptr)
-	{
-		return;
-	}
-
-	if (mOutsideRoot.size() > mMaxOutsideRoot)
-	{
-		expand();
-	}
-	else if (mOutsideRoot.size() < mMinOutsideRoot && mRootNode->hasChildren())
-	{
-		contract();
-	}
-}
-
-
-void DynamicQuadtree::expand()
-{
-	// Find direction with most occupants
-	sf::Vector2f averageDir(0.0f, 0.0f);
-
-	for (const auto& occupant : mOutsideRoot)
-	{
-		averageDir += vectorNormalize(rectCenter(occupant->getAABB()) - rectCenter(mRootNode->getRegion()));
-	}
-
-	sf::Vector2f centerOffsetDist(rectHalfDims(mRootNode->getRegion()) / mOversizeMultiplier);
-	sf::Vector2f centerOffset((averageDir.x > 0.0f ? 1.0f : -1.0f) * centerOffsetDist.x, (averageDir.y > 0.0f ? 1.0f : -1.0f) * centerOffsetDist.y);
-
-	// Child node position of current root node
-	int rX = centerOffset.x > 0.0f ? 0 : 1;
-	int rY = centerOffset.y > 0.0f ? 0 : 1;
-
-	sf::FloatRect newRootAABB = rectFromBounds(sf::Vector2f(0.0f, 0.0f), centerOffsetDist * 4.0f);
-	newRootAABB = rectRecenter(newRootAABB, centerOffset + rectCenter(mRootNode->getRegion()));
-
-	QuadtreeNode* pNewRoot = new QuadtreeNode(newRootAABB, mRootNode->mLevel + 1, nullptr, this);
-
-	// ----------------------- Manual Children Creation for New Root -------------------------
-
-	sf::Vector2f halfRegionDims = rectHalfDims(pNewRoot->mRegion);
-	sf::Vector2f regionLowerBound = rectLowerBound(pNewRoot->mRegion);
-	sf::Vector2f regionCenter = rectCenter(pNewRoot->mRegion);
-
-	// Create the children nodes
-	for (int x = 0; x < 2; x++)
-	{
-		for (int y = 0; y < 2; y++)
+		Quadtree* current = open.back();
+		open.pop_back();
+		if (area.intersects(current->mRegion))
 		{
-			if (x == rX && y == rY)
+			if (current->hasChildren())
 			{
-				pNewRoot->mChildren[x + y * 2].reset(mRootNode.release());
+				for (std::size_t i = 0; i < mChildren.size(); i++)
+				{
+					if (current->mChildren[i]->getNumOccupantsBelow() > 0)
+					{
+						open.push_back(current->mChildren[i]);
+					}
+				}
 			}
 			else
 			{
-				sf::Vector2f offset(x * halfRegionDims.x, y * halfRegionDims.y);
-				sf::FloatRect childAABB = rectFromBounds(regionLowerBound + offset, regionCenter + offset);
-
-				// Scale up AABB by the oversize multiplier
-				sf::Vector2f center = rectCenter(childAABB);
-
-				childAABB.width *= mOversizeMultiplier;
-				childAABB.height *= mOversizeMultiplier;
-
-				childAABB = rectRecenter(childAABB, center);
-
-				pNewRoot->mChildren[x + y * 2].reset(new QuadtreeNode(childAABB, mRootNode->mLevel, pNewRoot, this));
+				for (auto itr = current->mOccupants.begin(); itr != current->mOccupants.end(); itr++)
+				{
+					if ((*itr) != nullptr && (*itr)->isAwake() && area.intersects((*itr)->getAABB()))
+					{
+						occupants.push_back(*itr);
+					}
+				}
 			}
 		}
 	}
-
-	pNewRoot->mHasChildren = true;
-	pNewRoot->mNumOccupantsBelow = mRootNode->mNumOccupantsBelow;
-	mRootNode->mParent = pNewRoot;
-
-	// Transfer ownership
-	mRootNode.release();
-	mRootNode.reset(pNewRoot);
-
-	// ----------------------- Try to Add Previously Outside Root -------------------------
-
-	// Make copy so don't try to re-add ones just added
-	std::unordered_set<QuadtreeOccupant*> outsideRootCopy(mOutsideRoot);
-	mOutsideRoot.clear();
-	for (auto& occupant : outsideRootCopy)
-	{
-		add(occupant);
-	}
 }
 
-void DynamicQuadtree::contract()
+void Quadtree::query(const sf::Vector2f& point, std::vector<QuadtreeOccupant*>& occupants)
 {
-	assert(mRootNode->hasChildren());
-
-	// Find child with the most occupants and shrink to that
-	int maxIndex = 0;
-
-	for (int i = 1; i < 4; i++)
+	for (auto itr = mOutsideOccupants.begin(); itr != mOutsideOccupants.end(); itr++)
 	{
-		if (mRootNode->mChildren[i]->getNumOccupantsBelow() > mRootNode->mChildren[maxIndex]->getNumOccupantsBelow())
+		if ((*itr) != nullptr && (*itr)->isAwake() && (*itr)->getAABB().contains(point))
 		{
-			maxIndex = i;
+			occupants.push_back(*itr);
 		}
 	}
 
-	// Reorganize
-	for (int i = 0; i < 4; i++)
+	std::list<Quadtree*> open;
+	open.push_back(this);
+	while (!open.empty())
 	{
-		if (i == maxIndex)
+		Quadtree* current = open.back();
+		open.pop_back();
+		if (current->mRegion.contains(point))
 		{
-			continue;
+			if (current->hasChildren())
+			{
+				for (std::size_t i = 0; i < mChildren.size(); i++)
+				{
+					if (current->mChildren[i]->getNumOccupantsBelow() > 0)
+					{
+						open.push_back(current->mChildren[i]);
+					}
+				}
+			}
+			else
+			{
+				for (auto itr = current->mOccupants.begin(); itr != current->mOccupants.end(); itr++)
+				{
+					if ((*itr) != nullptr && (*itr)->isAwake() && (*itr)->getAABB().contains(point))
+					{
+						occupants.push_back(*itr);
+					}
+				}
+			}
 		}
-
-		mRootNode->mChildren[i]->removeForDeletion(mOutsideRoot);
 	}
-
-	QuadtreeNode* pNewRoot = mRootNode->mChildren[maxIndex].release();
-	mRootNode->destroyChildren();
-	mRootNode->removeForDeletion(mOutsideRoot);
-	mRootNode.reset(pNewRoot);
-	mRootNode->mParent = nullptr;
 }
 
-} // namespace lum
+void Quadtree::query(const sf::ConvexShape& shape, std::vector<QuadtreeOccupant*>& occupants)
+{
+	for (auto itr = mOutsideOccupants.begin(); itr != mOutsideOccupants.end(); itr++)
+	{
+		if ((*itr) != nullptr && (*itr)->isAwake() && shapeIntersection(shape, shapeFromRect((*itr)->getAABB())))
+		{
+			occupants.push_back(*itr);
+		}
+	}
+
+	std::list<Quadtree*> open;
+	open.push_back(this);
+	while (!open.empty())
+	{
+		Quadtree* current = open.back();
+		open.pop_back();
+		if (shapeIntersection(shape, shapeFromRect(current->mRegion)))
+		{
+			if (current->hasChildren())
+			{
+				for (std::size_t i = 0; i < mChildren.size(); i++)
+				{
+					if (current->mChildren[i]->getNumOccupantsBelow() > 0)
+					{
+						open.push_back(current->mChildren[i]);
+					}
+				}
+			}
+			else
+			{
+				for (auto itr = current->mOccupants.begin(); itr != current->mOccupants.end(); itr++)
+				{
+					if ((*itr) != nullptr && (*itr)->isAwake() && shapeIntersection(shape, shapeFromRect((*itr)->getAABB())))
+					{
+						occupants.push_back(*itr);
+					}
+				}
+			}
+		}
+	}
+}
+
+void Quadtree::split()
+{
+	mChildren.clear();
+
+	sf::Vector2f lower = { mRegion.left, mRegion.top };
+	sf::Vector2f size = { mRegion.width * 0.5f, mRegion.height * 0.5f };
+
+	for (std::size_t i = 0; i < 4; i++)
+	{
+		sf::FloatRect rect(lower.x, lower.y, size.x, size.y);
+		switch (i)
+		{
+			case 1: rect.left += size.x; break;
+			case 3: rect.left += size.x;
+			case 2: rect.top += size.y; break;
+			default: break;
+		}
+		mChildren.push_back(new Quadtree(rect, mMaxOccupants, mMaxLevels, this, mLevel + 1, i + 1));
+	}
+
+	for (auto itr = mOccupants.begin(); itr != mOccupants.end(); itr++)
+	{
+		if ((*itr) != nullptr)
+		{
+			addOccupant(*itr);
+		}
+	}
+
+	mOccupants.clear();
+}
+
+void Quadtree::unsplit()
+{
+	for (std::size_t i = 0; i < mChildren.size(); i++)
+	{
+		if (mChildren[i] != nullptr)
+		{
+			assert(!mChildren[i]->hasChildren());
+
+			for (auto itr = mChildren[i]->mOccupants.begin(); itr != mChildren[i]->mOccupants.end(); itr++)
+			{
+				if ((*itr) != nullptr)
+				{
+					mOccupants.insert(*itr);
+				}
+			}
+			mChildren[i]->clear();
+
+			delete mChildren[i];
+			mChildren[i] = nullptr;
+		}
+	}
+	mChildren.clear();
+}
+
+unsigned int Quadtree::getNumOccupantsBelow() const
+{
+	if (hasChildren())
+	{
+		unsigned int sum = 0;
+		for (std::size_t i = 0; i < mChildren.size(); i++)
+		{
+			sum += mChildren[i]->getNumOccupantsBelow();
+		}
+		return sum;
+	}
+	else
+	{
+		return mOccupants.size();
+	}
+}
+
+bool Quadtree::hasChildren() const
+{
+	return mChildren.size() > 0;
+}
+
+void Quadtree::draw(sf::RenderTarget& target, sf::RenderStates states) const
+{
+	if (hasChildren())
+	{
+		for (std::size_t i = 0; i < mChildren.size(); i++)
+		{
+			target.draw(*mChildren[i], states);
+		}
+	}
+	else
+	{
+		sf::Color color;
+		switch (mType)
+		{
+			case 1: color = sf::Color::Red; break;
+			case 2: color = sf::Color::Green; break;
+			case 3: color = sf::Color::Blue; break;
+			case 4: color = sf::Color::Yellow; break;
+			default: color = sf::Color::Magenta; break;
+		}
+		for (auto itr = mOccupants.begin(); itr != mOccupants.end(); itr++)
+		{
+			if ((*itr) != nullptr)
+			{
+				sf::FloatRect box = (*itr)->getAABB();
+				sf::RectangleShape oc({ box.width, box.height });
+				oc.setPosition({ box.left, box.top });
+				oc.setFillColor(color);
+				target.draw(oc, states);
+			}
+		}
+
+		sf::RectangleShape shape({ mRegion.width, mRegion.height });
+		shape.setPosition({ mRegion.left, mRegion.top });
+		shape.setFillColor(sf::Color::Transparent);
+		shape.setOutlineColor(sf::Color::Black);
+		shape.setOutlineThickness(1.f);
+		target.draw(shape, states);
+	}
+
+	for (auto itr = mOutsideOccupants.begin(); itr != mOutsideOccupants.end(); itr++)
+	{
+		if ((*itr) != nullptr)
+		{
+			sf::FloatRect box = (*itr)->getAABB();
+			sf::RectangleShape oc({ box.width, box.height });
+			oc.setPosition({ box.left, box.top });
+			oc.setFillColor(sf::Color::Cyan);
+			target.draw(oc, states);
+		}
+	}
+}
+
+sf::ConvexShape Quadtree::shapeFromRect(const sf::FloatRect & rect)
+{
+	sf::ConvexShape shape(4);
+	shape.setPoint(0, { 0.f , 0.f });
+	shape.setPoint(1, { rect.width, 0.f });
+	shape.setPoint(2, { rect.width, rect.height});
+	shape.setPoint(3, { 0.f, rect.height });
+	shape.setPosition(rect.left, rect.top);
+	return shape;
+}
+
+bool Quadtree::shapeIntersection(const sf::ConvexShape& left, const sf::ConvexShape& right)
+{
+	std::vector<sf::Vector2f> transformedLeft(left.getPointCount());
+	for (unsigned i = 0; i < left.getPointCount(); i++)
+	{
+		transformedLeft[i] = left.getTransform().transformPoint(left.getPoint(i));
+	}
+
+	std::vector<sf::Vector2f> transformedRight(right.getPointCount());
+	for (unsigned i = 0; i < right.getPointCount(); i++)
+	{
+		transformedRight[i] = right.getTransform().transformPoint(right.getPoint(i));
+	}
+
+	for (unsigned i = 0; i < left.getPointCount(); i++) 
+	{
+		sf::Vector2f point = transformedLeft[i];
+		sf::Vector2f nextPoint = (i == left.getPointCount() - 1u) ? transformedLeft[0] : transformedLeft[i + 1];
+		sf::Vector2f edge = nextPoint - point;
+		sf::Vector2f edgePerpendicular = sf::Vector2f(edge.y, -edge.x);
+		float magnitude = edgePerpendicular.x * edgePerpendicular.x + edgePerpendicular.y * edgePerpendicular.y;
+		float pointProj = (point.x * edgePerpendicular.x + point.y * edgePerpendicular.y) / magnitude;
+		float minRightProj = (transformedRight[0].x * edgePerpendicular.x + transformedRight[0].y * edgePerpendicular.y) / magnitude;
+
+		for (unsigned j = 1; j < right.getPointCount(); j++)
+		{
+			float proj = (transformedRight[j].x * edgePerpendicular.x + transformedRight[j].y * edgePerpendicular.y) / magnitude;
+			minRightProj = std::min(minRightProj, proj);
+		}
+
+		if (minRightProj > pointProj)
+		{
+			return false;
+		}
+	}
+
+	for (unsigned i = 0; i < right.getPointCount(); i++)
+	{
+		sf::Vector2f point = transformedRight[i];
+		sf::Vector2f nextPoint = (i == right.getPointCount() - 1u) ? transformedRight[0] : transformedRight[i + 1];
+		sf::Vector2f edge = nextPoint - point;
+		sf::Vector2f edgePerpendicular = sf::Vector2f(edge.y, -edge.x);
+		float magnitude = edgePerpendicular.x * edgePerpendicular.x + edgePerpendicular.y * edgePerpendicular.y;
+		float pointProj = (point.x * edgePerpendicular.x + point.y * edgePerpendicular.y) / magnitude;
+		float minRightProj = (transformedLeft[0].x * edgePerpendicular.x + transformedLeft[0].y * edgePerpendicular.y) / magnitude;
+
+		for (unsigned j = 1; j < left.getPointCount(); j++)
+		{
+			float proj = (transformedLeft[j].x * edgePerpendicular.x + transformedLeft[j].y * edgePerpendicular.y) / magnitude;
+			minRightProj = std::min(minRightProj, proj);
+		}
+
+		if (minRightProj > pointProj)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+} // namespace ltbl

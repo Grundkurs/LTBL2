@@ -237,4 +237,19 @@ void LightPointEmission::remove()
 	mSystem.removeLight(this);
 }
 
+void LightPointEmission::setTurnedOn(bool turnedOn)
+{
+	mTurnedOn = turnedOn;
+}
+
+bool LightPointEmission::isTurnedOn() const
+{
+	return mTurnedOn;
+}
+
+void LightPointEmission::toggleTurnedOn()
+{
+	mTurnedOn = !mTurnedOn;
+}
+
 } // namespace lum

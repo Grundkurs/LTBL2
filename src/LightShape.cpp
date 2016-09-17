@@ -30,4 +30,19 @@ void LightShape::remove()
 	mSystem.removeShape(this);
 }
 
+void LightShape::setTurnedOn(bool turnedOn)
+{
+	mTurnedOn = turnedOn;
+}
+
+bool LightShape::isTurnedOn() const
+{
+	return mTurnedOn;
+}
+
+void LightShape::toggleTurnedOn()
+{
+	mTurnedOn = !mTurnedOn;
+}
+
 } // namespace lum

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Math.hpp"
 #include "Quadtree.hpp"
 #include "LightPointEmission.hpp"
 #include "LightDirectionEmission.hpp"
@@ -38,9 +39,6 @@ class LightSystem : sf::NonCopyable
 		LightDirectionEmission* createLightPointDirection();
 		void removeLight(LightDirectionEmission* light);
 
-		void trimLightPointEmissionQuadtree();
-		void trimShapeQuadtree();
-
 		void update(sf::Vector2u const& size = sf::Vector2u());
 
 		sf::Texture& getPenumbraTexture();
@@ -56,8 +54,8 @@ class LightSystem : sf::NonCopyable
 		sf::Shader mUnshadowShader;
 		sf::Shader mLightOverShapeShader;
 
-		DynamicQuadtree mShapeQuadtree;
-		DynamicQuadtree mLightPointEmissionQuadtree;
+		Quadtree mShapeQuadtree;
+		Quadtree mLightPointEmissionQuadtree;
 
 		std::unordered_set<LightPointEmission*> mPointEmissionLights;
 		std::unordered_set<LightDirectionEmission*> mDirectionEmissionLights;

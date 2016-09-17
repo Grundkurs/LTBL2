@@ -20,7 +20,7 @@ Changes
 -------
 
 - Light management : use create...() to create your light and add it to the system and no shared pointers
-- QuadtreeOccupant : isAwake() for performance and isTurnedOn() for feature
+- Quadtree : rebuilt entirely
 - LightSystem : simplified render call and minor performance improvements
 - Remove/change some hardcoded value
 - LightPointEmission and LightPointDirection inherit from sf::Sprite 

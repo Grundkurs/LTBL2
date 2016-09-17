@@ -21,6 +21,10 @@ class LightDirectionEmission : public sf::Sprite
 
 		void remove();
 
+		void setTurnedOn(bool turnedOn);
+		bool isTurnedOn() const;
+		void toggleTurnedOn();
+
 	private:
 		LightSystem& mSystem;
 
@@ -29,6 +33,8 @@ class LightDirectionEmission : public sf::Sprite
 
 		float mSourceRadius;
 		float mSourceDistance;
+
+		bool mTurnedOn;
 };
 
 } // namespace lum

@@ -144,4 +144,19 @@ void LightDirectionEmission::remove()
 	mSystem.removeLight(this);
 }
 
+void LightDirectionEmission::setTurnedOn(bool turnedOn)
+{
+	mTurnedOn = turnedOn;
+}
+
+bool LightDirectionEmission::isTurnedOn() const
+{
+	return mTurnedOn;
+}
+
+void LightDirectionEmission::toggleTurnedOn()
+{
+	mTurnedOn = !mTurnedOn;
+}
+
 } // namespace lum

@@ -7,7 +7,9 @@ namespace ltbl
 {
 
 LightSystem::LightSystem()
-	: mDirectionEmissionRange(1000.0f)
+	: mShapeQuadtree(sf::FloatRect())
+	, mLightPointEmissionQuadtree(sf::FloatRect())
+	, mDirectionEmissionRange(1000.0f)
 	, mDirectionEmissionRadiusMultiplier(1.1f)
 	, mAmbientColor(sf::Color(16, 16, 16))
 {
@@ -15,8 +17,8 @@ LightSystem::LightSystem()
 
 void LightSystem::create(const sf::FloatRect& rootRegion, const sf::Vector2u& imageSize)
 {
-    mShapeQuadtree.create(rootRegion);
-    mLightPointEmissionQuadtree.create(rootRegion);
+    mShapeQuadtree.create(rootRegion, 10, 5);
+    mLightPointEmissionQuadtree.create(rootRegion, 10, 5);
 
 	using namespace resources;
 
@@ -50,7 +52,7 @@ void LightSystem::render(sf::RenderTarget& target)
 	sf::FloatRect viewBounds = sf::FloatRect(view.getCenter() - view.getSize() * 0.5f, view.getSize());
 
 	std::vector<QuadtreeOccupant*> viewPointEmissionLights;
-	mLightPointEmissionQuadtree.queryRegion(viewPointEmissionLights, viewBounds);
+	mLightPointEmissionQuadtree.query(viewBounds, viewPointEmissionLights);
 
     std::vector<QuadtreeOccupant*> lightShapes;
     sf::Sprite lightTempSprite(mLightTempTexture.getTexture());
@@ -62,7 +64,7 @@ void LightSystem::render(sf::RenderTarget& target)
 		{
 			// Query shapes this light is affected by
 			lightShapes.clear();
-			mShapeQuadtree.queryRegion(lightShapes, pPointEmissionLight->getAABB());
+			mShapeQuadtree.query(pPointEmissionLight->getAABB(), lightShapes);
 
 			pPointEmissionLight->render(view, mLightTempTexture, mEmissionTempTexture, mAntumbraTempTexture, lightShapes);
 			mCompositionTexture.draw(lightTempSprite, sf::BlendAdd);
@@ -84,7 +86,7 @@ void LightSystem::render(sf::RenderTarget& target)
         directionShape.setRotation(directionEmissionLight->getCastAngle());
 
         std::vector<QuadtreeOccupant*> viewLightShapes;
-        mShapeQuadtree.queryShape(viewLightShapes, directionShape);
+        mShapeQuadtree.query(directionShape, viewLightShapes);
 
         directionEmissionLight->render(view, mLightTempTexture, mAntumbraTempTexture, viewLightShapes, shadowExtension);
 
@@ -101,7 +103,7 @@ void LightSystem::render(sf::RenderTarget& target)
 LightShape* LightSystem::createLightShape()
 {
 	LightShape* shape = new LightShape(*this);
-	mShapeQuadtree.add(shape);
+	mShapeQuadtree.addOccupant(shape);
 	mLightShapes.insert(shape);
 	return shape;
 }
@@ -111,7 +113,7 @@ void LightSystem::removeShape(LightShape* shape)
 	auto itr = mLightShapes.find(shape);
 	if (itr != mLightShapes.end()) 
 	{
-		(*itr)->quadtreeRemove();
+		mShapeQuadtree.removeOccupant(*itr);
 		mLightShapes.erase(itr);
 		delete shape;
 	}
@@ -120,7 +122,7 @@ void LightSystem::removeShape(LightShape* shape)
 LightPointEmission* LightSystem::createLightPointEmission()
 {
 	LightPointEmission* light = new LightPointEmission(*this);
-	mLightPointEmissionQuadtree.add(light);
+	mLightPointEmissionQuadtree.addOccupant(light);
 	mPointEmissionLights.insert(light);
 	return light;
 }
@@ -130,7 +132,7 @@ void LightSystem::removeLight(LightPointEmission* light)
 	auto itr = mPointEmissionLights.find(light);
 	if (itr != mPointEmissionLights.end())
 	{
-		(*itr)->quadtreeRemove();
+		mLightPointEmissionQuadtree.removeOccupant(*itr);
 		mPointEmissionLights.erase(itr);
 		delete light;
 	}
@@ -151,16 +153,6 @@ void LightSystem::removeLight(LightDirectionEmission* light)
 		mDirectionEmissionLights.erase(itr);
 		delete light;
 	}
-}
-
-void LightSystem::trimLightPointEmissionQuadtree()
-{
-	mLightPointEmissionQuadtree.trim();
-}
-
-void LightSystem::trimShapeQuadtree()
-{
-	mShapeQuadtree.trim();
 }
 
 void LightSystem::update(sf::Vector2u const& size)

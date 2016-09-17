@@ -24,6 +24,10 @@ class LightPointEmission : public QuadtreeOccupant, public sf::Sprite
 
 		void remove();
 
+		void setTurnedOn(bool turnedOn);
+		bool isTurnedOn() const;
+		void toggleTurnedOn();
+
 	private:
 		LightSystem& mSystem;
 
@@ -32,6 +36,8 @@ class LightPointEmission : public QuadtreeOccupant, public sf::Sprite
 		float mSourceRadius;
 
 		float mShadowOverExtendMultiplier;
+
+		bool mTurnedOn;
 };
 
 } // namespace lum
