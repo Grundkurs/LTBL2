@@ -2087,9 +2087,9 @@ LightShape* LightSystem::createLightShape(const sf::Sprite& sprite)
 	LightShape* lightShape = createLightShape();
 	lightShape->setPointCount(4u);
 	lightShape->setPoint(0u, { 0.f, 0.f });
-	lightShape->setPoint(1u, { sprite.getTextureRect().width, 0.f });
-	lightShape->setPoint(2u, { sprite.getTextureRect().width, sprite.getTextureRect().height });
-	lightShape->setPoint(3u, { 0.f, sprite.getTextureRect().height });
+	lightShape->setPoint(1u, { sprite.getTextureRect().width * 1.f, 0.f });
+	lightShape->setPoint(2u, { sprite.getTextureRect().width * 1.f, sprite.getTextureRect().height * 1.f});
+	lightShape->setPoint(3u, { 0.f, sprite.getTextureRect().height * 1.f});
 	lightShape->setPosition(sprite.getPosition());
 	lightShape->setOrigin(sprite.getOrigin());
 	lightShape->setRotation(sprite.getRotation());
