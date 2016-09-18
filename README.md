@@ -14,8 +14,8 @@ Add LetThereBeLight.hpp & LetThereBeLight.cpp to your project
 Quick Start
 -----------
 
-[See the example](examples/main.cpp)
-[See the documentation](https://cmdu76.github.io/LTBL2)
+- [See the example](examples/main.cpp)
+- [See the documentation](https://cmdu76.github.io/LTBL2)
 
 Changes
 -------

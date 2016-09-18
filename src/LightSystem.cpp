@@ -119,6 +119,80 @@ LightShape* LightSystem::createLightShape()
 	return shape;
 }
 
+LightShape* LightSystem::createLightShape(const sf::RectangleShape& shape)
+{
+	LightShape* lightShape = createLightShape();
+	lightShape->setPointCount(4u);
+	lightShape->setPoint(0u, { 0.f, 0.f });
+	lightShape->setPoint(1u, { shape.getSize().x, 0.f });
+	lightShape->setPoint(2u, shape.getSize());
+	lightShape->setPoint(3u, { 0.f, shape.getSize().y });
+	lightShape->setPosition(shape.getPosition());
+	lightShape->setOrigin(shape.getOrigin());
+	lightShape->setRotation(shape.getRotation());
+	lightShape->setScale(shape.getScale());
+	return lightShape;
+}
+
+LightShape* LightSystem::createLightShape(const sf::ConvexShape& shape)
+{
+	LightShape* lightShape = createLightShape();
+	unsigned int pointCount = shape.getPointCount();
+	lightShape->setPointCount(pointCount);
+	for (unsigned int i = 0; i < pointCount; i++)
+	{
+		lightShape->setPoint(i, shape.getPoint(i));
+	}
+	lightShape->setPosition(shape.getPosition());
+	lightShape->setOrigin(shape.getOrigin());
+	lightShape->setRotation(shape.getRotation());
+	lightShape->setScale(shape.getScale());
+	return lightShape;
+}
+
+LightShape* LightSystem::createLightShape(const sf::CircleShape& shape)
+{
+	LightShape* lightShape = createLightShape();
+	unsigned int pointCount = shape.getPointCount();
+	lightShape->setPointCount(pointCount);
+	for (unsigned int i = 0; i < pointCount; i++)
+	{
+		lightShape->setPoint(i, shape.getPoint(i));
+	}
+	lightShape->setPosition(shape.getPosition());
+	lightShape->setOrigin(shape.getOrigin());
+	lightShape->setRotation(shape.getRotation());
+	lightShape->setScale(shape.getScale());
+	return lightShape;
+}
+
+LightShape* LightSystem::createLightShape(const sf::FloatRect& rect)
+{
+	LightShape* lightShape = createLightShape();
+	lightShape->setPointCount(4u);
+	lightShape->setPoint(0u, { 0.f, 0.f });
+	lightShape->setPoint(1u, { rect.width, 0.f });
+	lightShape->setPoint(2u, { rect.width, rect.height });
+	lightShape->setPoint(3u, { 0.f, rect.height });
+	lightShape->setPosition(rect.left, rect.top);
+	return lightShape;
+}
+
+LightShape* LightSystem::createLightShape(const sf::Sprite& sprite)
+{
+	LightShape* lightShape = createLightShape();
+	lightShape->setPointCount(4u);
+	lightShape->setPoint(0u, { 0.f, 0.f });
+	lightShape->setPoint(1u, { sprite.getTextureRect().width, 0.f });
+	lightShape->setPoint(2u, { sprite.getTextureRect().width, sprite.getTextureRect().height });
+	lightShape->setPoint(3u, { 0.f, sprite.getTextureRect().height });
+	lightShape->setPosition(sprite.getPosition());
+	lightShape->setOrigin(sprite.getOrigin());
+	lightShape->setRotation(sprite.getRotation());
+	lightShape->setScale(sprite.getScale());
+	return lightShape;
+}
+
 void LightSystem::removeShape(LightShape* shape)
 {
 	auto itr = mLightShapes.find(shape);
