@@ -52,7 +52,7 @@ inline sf::Vector2f rectLowerBound(const sf::FloatRect& rect)
 	return sf::Vector2f(rect.left, rect.top);
 }
 
-inline sf::Vector2f rectUpperBound(const sf::FloatRect &rect)
+inline sf::Vector2f rectUpperBound(const sf::FloatRect& rect)
 {
 	return sf::Vector2f(rect.left + rect.width, rect.top + rect.height);
 }
@@ -188,54 +188,87 @@ inline bool rayIntersect(const sf::Vector2f& as, const sf::Vector2f& ad, const s
 	return true;
 }
 
+//////////////////////////////////////////////////////////////////////////
+/// \brief An occupant of a quadtree
+//////////////////////////////////////////////////////////////////////////
 class QuadtreeOccupant
 {
 	public:
-		// Ctor
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Default constructor
+		//////////////////////////////////////////////////////////////////////////
 		QuadtreeOccupant()
 			: mAwake(true)
+			, mAABBChanged(false)
 		{
 		}
 
-		// Set the occupant as awake for quadtree
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Set the occupant awake for the quadtree
+		/// \param awake True to set awake, false otherwise
+		//////////////////////////////////////////////////////////////////////////
 		void setAwake(bool awake)
 		{
 			mAwake = awake;
 		}
 
-		// Is the occupant awake (ie queryable & updatable) ?
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Is the occupant awake for the quadtree ?
+		/// \return True if the occupant is awake, false otherwise
+		//////////////////////////////////////////////////////////////////////////
 		bool isAwake() const
 		{
 			return mAwake;
 		}
 
-		// Change the awake statut
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Toggle the awake statut of the occupant
+		//////////////////////////////////////////////////////////////////////////
 		void toggleAwake()
 		{
 			mAwake = !mAwake;
 		}
 
-		// Get the AABB box of the occupant
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Get the AABB box of the occupant
+		/// \return The AABB box
+		//////////////////////////////////////////////////////////////////////////
 		virtual sf::FloatRect getAABB() const = 0;
 
-		// Notify the quadtree that the AABB box changed
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Notify the quadtree that the AABB box changed
+		//////////////////////////////////////////////////////////////////////////
 		void quadtreeAABBChanged()
 		{
 			mAABBChanged = true;
 		}
 
 	private:
-		bool mAwake;
-		bool mAABBChanged;
+		bool mAwake; ///< Is the occupant awake ? (ie queryable / updatable by the quadtree)
+		bool mAABBChanged; ///< Do the AABB box changed ?
 
 	private:
 		friend class Quadtree;
 };
 
+//////////////////////////////////////////////////////////////////////////
+/// \brief A quadtree node
+/// The only node you have to create is the root node
+/// The difference with other nodes is that the root has no parent
+/// To build the root node only the 3 first parameters are required (and the second and third are optionnal)
+//////////////////////////////////////////////////////////////////////////
 class Quadtree : sf::NonCopyable, public sf::Drawable
 {
 	public:
-		// Ctor
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Constructor
+		/// \param region The region of the quadtree
+		/// \param maxOccupants The number of occupants per region, having more occupants will make the quadtree split
+		/// \param maxLevels The number of depth level of the quadtree, if this level is reached, the quadtree will never split again
+		/// \param parent The parent of this quadtree
+		/// \param level The level of this quadtree
+		/// \param type The type of this quadtree, used to render the quadtree
+		//////////////////////////////////////////////////////////////////////////
 		Quadtree(const sf::FloatRect& region, unsigned int maxOccupants = 5, unsigned int maxLevels = 5, Quadtree* parent = nullptr, unsigned int level = 0, unsigned int type = 0)
 			: mRegion(region)
 			, mMaxOccupants(maxOccupants)
@@ -243,10 +276,21 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			, mParent(parent)
 			, mLevel(level)
 			, mType(type)
+			, mOccupants()
+			, mOutsideOccupants()
+			, mChildren()
 		{
 		}
 
-		// Create the quadtree (or recreate)
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Create the quadtree (or recreate)
+		/// \param region The region of the quadtree
+		/// \param maxOccupants The number of occupants per region, having more occupants will make the quadtree split
+		/// \param maxLevels The number of depth level of the quadtree, if this level is reached, the quadtree will never split again
+		/// \param parent The parent of this quadtree
+		/// \param level The level of this quadtree
+		/// \param type The type of this quadtree, used to render the quadtree
+		//////////////////////////////////////////////////////////////////////////
 		void create(const sf::FloatRect& region, unsigned int maxOccupants = 5, unsigned int maxLevels = 5, Quadtree* parent = nullptr, unsigned int level = 0, unsigned int type = 0)
 		{
 			clear();
@@ -259,7 +303,10 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			mType = type;
 		}
 
-		// Add an occupant
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Add an occupant
+		/// \param oc The occupant
+		//////////////////////////////////////////////////////////////////////////
 		void addOccupant(QuadtreeOccupant* oc)
 		{
 			if (oc != nullptr)
@@ -306,7 +353,11 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			}
 		}
 
-		// Remove an occupant
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Remove an occupant
+		/// \param oc The occupant to remove
+		/// \return True if it has been removed, false otherwise
+		//////////////////////////////////////////////////////////////////////////
 		bool removeOccupant(QuadtreeOccupant* oc)
 		{
 			if (hasChildren())
@@ -354,7 +405,9 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			return false;
 		}
 
-		// Update the quadtree (occupant which have moved)
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Update the quadtree (occupants which have moved)
+		//////////////////////////////////////////////////////////////////////////
 		bool update()
 		{
 			bool moved = false;
@@ -450,7 +503,9 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			return moved;
 		}
 
-		// Clear the quadtree
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Clear the quadtree
+		//////////////////////////////////////////////////////////////////////////
 		void clear()
 		{
 			if (hasChildren())
@@ -470,7 +525,11 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			mParent = nullptr;
 		}
 
-		// Query occupants from an area
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Query occupants from an area
+		/// \param area The query area
+		/// \param occupants The returned occupants
+		//////////////////////////////////////////////////////////////////////////
 		void query(const sf::FloatRect& area, std::vector<QuadtreeOccupant*>& occupants)
 		{
 			for (auto itr = mOutsideOccupants.begin(); itr != mOutsideOccupants.end(); itr++)
@@ -513,7 +572,11 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			}
 		}
 
-		// Query occupants from a point
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Query occupants from a point
+		/// \param point The query point
+		/// \param occupants The returned occupants
+		//////////////////////////////////////////////////////////////////////////
 		void query(const sf::Vector2f& point, std::vector<QuadtreeOccupant*>& occupants)
 		{
 			for (auto itr = mOutsideOccupants.begin(); itr != mOutsideOccupants.end(); itr++)
@@ -556,7 +619,11 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			}
 		}
 
-		// Query occupants from a shape
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Query occupants from a shape
+		/// \param shape The query shape
+		/// \param occupants The returned occupants
+		//////////////////////////////////////////////////////////////////////////
 		void query(const sf::ConvexShape& shape, std::vector<QuadtreeOccupant*>& occupants)
 		{
 			for (auto itr = mOutsideOccupants.begin(); itr != mOutsideOccupants.end(); itr++)
@@ -600,7 +667,9 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 		}
 
 	private:
-		// Split the quadtree
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Split the quadtree
+		//////////////////////////////////////////////////////////////////////////
 		void split()
 		{
 			mChildren.clear();
@@ -632,7 +701,9 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			mOccupants.clear();
 		}
 
-		// Unsplit the quadtree
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Unsplit the quadtree
+		//////////////////////////////////////////////////////////////////////////
 		void unsplit()
 		{
 			for (std::size_t i = 0; i < mChildren.size(); i++)
@@ -655,7 +726,10 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			mChildren.clear();
 		}
 
-		// Get the number of occupants below
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Get the number of occupants below
+		/// \return The number of occupants below
+		//////////////////////////////////////////////////////////////////////////
 		unsigned int getNumOccupantsBelow() const
 		{
 			if (hasChildren())
@@ -673,13 +747,20 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			}
 		}
 
-		// Do the quadtree has children (ie sub-quadtree) ?
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Do the quadtree has children (ie sub-quadtree) ?
+		/// \return True if the quadtree has children, false otherwise
+		//////////////////////////////////////////////////////////////////////////
 		bool hasChildren() const
 		{
 			return mChildren.size() > 0;
 		}
 
-		// Draw the quadtree
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Draw the quadtree
+		/// \param target The render target to draw the quadtree on
+		/// \param states The render states to apply to the quadtree on render
+		//////////////////////////////////////////////////////////////////////////
 		void draw(sf::RenderTarget& target, sf::RenderStates states) const
 		{
 			if (hasChildren())
@@ -733,7 +814,11 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			}
 		}
 
-		// Create a convex shape from a rect
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Create a convex shape from a rectangle
+		/// \param rect The rectangle defining the shape
+		/// \return The created shape
+		//////////////////////////////////////////////////////////////////////////
 		static sf::ConvexShape shapeFromRect(const sf::FloatRect& rect)
 		{
 			sf::ConvexShape shape(4);
@@ -745,7 +830,12 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 			return shape;
 		}
 
-		// Do convex shape intersects ?
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Do two convex shapes intersect ?
+		/// \param left The first shape
+		/// \param right The second shape
+		/// \return True if they intersect, false otherwise
+		//////////////////////////////////////////////////////////////////////////
 		static bool shapeIntersection(const sf::ConvexShape& left, const sf::ConvexShape& right)
 		{
 			std::vector<sf::Vector2f> transformedLeft(left.getPointCount());
@@ -803,22 +893,111 @@ class Quadtree : sf::NonCopyable, public sf::Drawable
 					return false;
 				}
 			}
-
 			return true;
 		}
 
 	private:
-		sf::FloatRect mRegion;
-		unsigned int mMaxOccupants;
-		unsigned int mMaxLevels;
-		Quadtree* mParent;
-		unsigned int mLevel;
-		unsigned int mType;
+		sf::FloatRect mRegion; ///< The region of the quadree
+		unsigned int mMaxOccupants; ///< The number of max occupants
+		unsigned int mMaxLevels; ///< The number of level max
+		Quadtree* mParent; ///< The parent of the quadtree
+		unsigned int mLevel; ///< The actual level of the quadtree
+		unsigned int mType; ///< The type of the quadtree
 
-		std::unordered_set<QuadtreeOccupant*> mOccupants;
-		std::unordered_set<QuadtreeOccupant*> mOutsideOccupants;
+		std::unordered_set<QuadtreeOccupant*> mOccupants; ///< The occupants of the quadtree
+		std::unordered_set<QuadtreeOccupant*> mOutsideOccupants; ///< The occupants outside the region, belonging to the quadtree (used only by the main quadtree)
 
-		std::vector<Quadtree*> mChildren;
+		std::vector<Quadtree*> mChildren; ///< The children (sub-quadtree)
+};
+
+//////////////////////////////////////////////////////////////////////////
+/// \brief Data of a penumbra
+//////////////////////////////////////////////////////////////////////////
+struct Penumbra
+{
+	sf::Vector2f _source; ///< The source
+	sf::Vector2f _lightEdge; ///< The light edge
+	sf::Vector2f _darkEdge; ///< The dark edge
+	float _lightBrightness; ///< The light brightness
+	float _darkBrightness; ///< The dark brightness
+	float _distance; ///< The distance
+};
+
+//////////////////////////////////////////////////////////////////////////
+/// \brief Base class for lights and light shape
+//////////////////////////////////////////////////////////////////////////
+class BaseLight
+{
+	public:
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Default constructor
+		//////////////////////////////////////////////////////////////////////////
+		BaseLight()
+			: mTurnedOn(true)
+		{
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Enable or disable the light
+		/// \param turnedOn True to enable the light, false to disable it
+		//////////////////////////////////////////////////////////////////////////
+		void setTurnedOn(bool turnedOn)
+		{
+			mTurnedOn = turnedOn;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Tell whether or not the light is enabled
+		/// \return True if the light is enabled, false otherwise
+		//////////////////////////////////////////////////////////////////////////
+		bool isTurnedOn() const
+		{
+			return mTurnedOn;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Toggle the light on/off
+		//////////////////////////////////////////////////////////////////////////
+		void toggleTurnedOn()
+		{
+			mTurnedOn = !mTurnedOn;
+		}
+
+	protected:
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Unmask with penumbras
+		/// \param renderTexture The render texture to apply penumbras on
+		/// \param blendMode The blend mode
+		/// \param penumbras The penumbras
+		/// \param shadowExtension The shadow extension
+		//////////////////////////////////////////////////////////////////////////
+		void unmaskWithPenumbras(sf::RenderTexture& renderTexture, sf::BlendMode blendMode, sf::Shader& unshadowShader, const std::vector<Penumbra>& penumbras, float shadowExtension)
+		{
+			sf::VertexArray vertexArray;
+			vertexArray.setPrimitiveType(sf::PrimitiveType::Triangles);
+			vertexArray.resize(3);
+
+			sf::RenderStates states;
+			states.blendMode = blendMode;
+			states.shader = &unshadowShader;
+
+			unsigned int penumbrasCount = penumbras.size();
+			for (unsigned int i = 0; i < penumbrasCount; i++)
+			{
+				unshadowShader.setUniform("lightBrightness", penumbras[i]._lightBrightness);
+				unshadowShader.setUniform("darkBrightness", penumbras[i]._darkBrightness);
+				vertexArray[0].position = penumbras[i]._source;
+				vertexArray[1].position = penumbras[i]._source + priv::vectorNormalize(penumbras[i]._lightEdge) * shadowExtension;
+				vertexArray[2].position = penumbras[i]._source + priv::vectorNormalize(penumbras[i]._darkEdge) * shadowExtension;
+				vertexArray[0].texCoords = sf::Vector2f(0.0f, 1.0f);
+				vertexArray[1].texCoords = sf::Vector2f(1.0f, 0.0f);
+				vertexArray[2].texCoords = sf::Vector2f(0.0f, 0.0f);
+				renderTexture.draw(vertexArray, states);
+			}
+		}
+
+	private:
+		bool mTurnedOn; ///< Is the light turned on ?
 };
 
 } // namespace priv

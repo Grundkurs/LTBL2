@@ -19,14 +19,14 @@ See the example file (I will take time to add doc here in few commit)
 Changes
 -------
 
-- Light management : use create...() to create your light and add it to the system and no shared pointers
+- Light management : use create...() to create your light and add it to the system (no shared pointers used)
 - Quadtree : rebuilt entirely
 - LightSystem : simplified render call and minor performance improvements
 - LightShape & LightPointEmission are updated with the quadtree
 - LightDirectionEmission has been simplified
 - Remove/change some hardcoded value
 - Add resources direclty in C++ (PenumbraTexture, UnshadowShader & LightOverShapeShader)
-- Wokring on documentation
+- Documentation
 
 License
 -------

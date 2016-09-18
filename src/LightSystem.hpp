@@ -1,107 +1,160 @@
 #pragma once
 
-#include "Utils.hpp"
-#include "LightPointEmission.hpp"
 #include "LightDirectionEmission.hpp"
-#include "LightShape.hpp"
+#include "LightPointEmission.hpp"
 #include "LightResources.hpp"
 
 namespace ltbl
 {
 
+//////////////////////////////////////////////////////////////////////////
+/// \brief System which handle lights
+//////////////////////////////////////////////////////////////////////////
 class LightSystem : sf::NonCopyable
 {
-	public:
-		struct Penumbra
-		{
-			sf::Vector2f _source;
-			sf::Vector2f _lightEdge;
-			sf::Vector2f _darkEdge;
-			float _lightBrightness;
-			float _darkBrightness;
-			float _distance;
-		};
-
     public:
-		// Ctor
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Default constructor
+		//////////////////////////////////////////////////////////////////////////
 		LightSystem();
 
-		// Create quadtrees, resources and render textures
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Create quadtrees, resources and render textures
+		/// \param rootRegion The root region for quadtrees
+		/// \param imageSize The size of the image, used to create render texture
+		//////////////////////////////////////////////////////////////////////////
         void create(const sf::FloatRect& rootRegion, const sf::Vector2u& imageSize);
 
-		// Render the lights
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Render the lights
+		/// \param target The render target to render the lights on
+		//////////////////////////////////////////////////////////////////////////
         void render(sf::RenderTarget& target);
 
-		// Create a light shape
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Create a light shape
+		/// \return The new light shape
+		//////////////////////////////////////////////////////////////////////////
 		LightShape* createLightShape();
 
-		// Remove a light shape
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Remove a light shape
+		/// \param shape The light shape to remove
+		//////////////////////////////////////////////////////////////////////////
 		void removeShape(LightShape* shape);
 
-		// Create a light point
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Create a light point emission
+		/// \return The new light point emission
+		//////////////////////////////////////////////////////////////////////////
 		LightPointEmission* createLightPointEmission();
 
-		// Remove a light point
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Remove a light point emission
+		/// \param light The light point emission to remove
+		//////////////////////////////////////////////////////////////////////////
 		void removeLight(LightPointEmission* light);
 
-		// Create a light direction
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Create a light direction emission
+		/// \return The new light direction emission
+		//////////////////////////////////////////////////////////////////////////
 		LightDirectionEmission* createLightDirectionEmission();
 
-		// Remove a light direction
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Remove a light direction emssion
+		/// \param light The light direction emission to remove
+		//////////////////////////////////////////////////////////////////////////
 		void removeLight(LightDirectionEmission* light);
 
-		// Set ambient color
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Set the direction emission range
+		/// \param range The new range
+		//////////////////////////////////////////////////////////////////////////
+		void setDirectionEmissionRange(float range);
+
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Get the direction emission range
+		/// \return The current range
+		//////////////////////////////////////////////////////////////////////////
+		float getDirectionEmissionRange() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Set the direction emission radius multiplier
+		/// \param multiplier The new multiplier
+		//////////////////////////////////////////////////////////////////////////
+		void setDirectionEmissionRadiusMultiplier(float multiplier);
+
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Get the direction emission radius multiplier
+		/// \return The current multiplier
+		//////////////////////////////////////////////////////////////////////////
+		float getDirectionEmissionRadiusMultiplier() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Set ambient color
+		/// \param color The new ambient color
+		//////////////////////////////////////////////////////////////////////////
 		void setAmbientColor(const sf::Color& color);
 
-		// Get ambient color
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Get ambient color
+		/// \return The current ambient color
+		//////////////////////////////////////////////////////////////////////////
 		const sf::Color& getAmbientColor() const;
 
-		// Update shader texture and the size of render texture
-		// Note : Call it only if you change the penumbra texture or shaders, render texture size are automatically updated
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Update shader texture and the size of render texture
+		/// Call it only if you change the penumbra texture or shaders, render texture size are automatically updated
+		/// \param size The new size for render texture, don't call it with this parameter yourself !
+		//////////////////////////////////////////////////////////////////////////
 		void update(const sf::Vector2u& size = sf::Vector2u());
 
-		// Get the penumbra texture
-		// Note : As penumbra texture if automatically loaded, use it only to change the texture
-		// Note : You have to call update(), right after you changed it
-		// Note : Don't forget to smooth the texture after changing it
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Get the penumbra texture
+		/// As penumbra texture if automatically loaded, use it only to change the texture
+		/// You have to call update(), right after you changed it
+		/// Don't forget to smooth the texture after changing it
+		/// \return The penumbra texture
+		//////////////////////////////////////////////////////////////////////////
 		sf::Texture& getPenumbraTexture();
 
-		// Get the unshadow shader
-		// Note : As unshadow shader if automatically loaded, use it only to change the shader
-		// Note : You have to call update(), right after you changed it
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Get the unshadow shader
+		/// As unshadow shader if automatically loaded, use it only to change the shader
+		/// You have to call update(), right after you changed it
+		/// \return The unshadow shader
+		//////////////////////////////////////////////////////////////////////////
 		sf::Shader& getUnshadowShader();
 
-		// Get the light over shape shader
-		// Note : As light over shape shader if automatically loaded, use it only to change the shader
-		// Note : You have to call update(), right after you changed it
+		//////////////////////////////////////////////////////////////////////////
+		/// \brief Get the light over shape shader
+		/// As light over shape shader if automatically loaded, use it only to change the shader
+		/// You have to call update(), right after you changed it
+		/// \return The light over shape shader
+		//////////////////////////////////////////////////////////////////////////
 		sf::Shader& getLightOverShapeShader();
 
-		// TODO : Check this function
-		static void getPenumbrasPoint(std::vector<Penumbra>& penumbras, std::vector<int>& innerBoundaryIndices, std::vector<sf::Vector2f>& innerBoundaryVectors, std::vector<int>& outerBoundaryIndices, std::vector<sf::Vector2f>& outerBoundaryVectors, const LightShape& shape, const sf::Vector2f& sourceCenter, float sourceRadius);
-		
-		// TODO : Check this function
-		static void getPenumbrasDirection(std::vector<Penumbra>& penumbras, std::vector<int>& innerBoundaryIndices, std::vector<sf::Vector2f>& innerBoundaryVectors, std::vector<int>& outerBoundaryIndices, std::vector<sf::Vector2f>& outerBoundaryVectors, const LightShape& shape, const sf::Vector2f& sourceDirection, float sourceRadius, float sourceDistance);
-
 	private:
-		sf::Texture mPenumbraTexture;
-		sf::Shader mUnshadowShader;
-		sf::Shader mLightOverShapeShader;
+		sf::Texture mPenumbraTexture; ///< The penumbra texture, loaded from memory when the system is created
+		sf::Shader mUnshadowShader; ///< The unshadow shader, loaded from memory when the system is created
+		sf::Shader mLightOverShapeShader; ///< The light over shape shader, loaded from memory when the system is created
 
-		priv::Quadtree mLightShapeQuadtree;
-		priv::Quadtree mLightPointEmissionQuadtree;
+		priv::Quadtree mLightShapeQuadtree; ///< The quadtree that handles LightShape
+		priv::Quadtree mLightPointEmissionQuadtree; ///< The quadtree that handles LightPointEmission
 
-		std::unordered_set<LightPointEmission*> mPointEmissionLights;
-		std::unordered_set<LightDirectionEmission*> mDirectionEmissionLights;
-		std::unordered_set<LightShape*> mLightShapes;
+		std::unordered_set<LightPointEmission*> mPointEmissionLights; ///< The LightPointEmissions of the system
+		std::unordered_set<LightDirectionEmission*> mDirectionEmissionLights; ///< The LightDirectionEmissions of the system
+		std::unordered_set<LightShape*> mLightShapes; ///< The LightShapes of the system
 
-		sf::RenderTexture mLightTempTexture;
-		sf::RenderTexture mEmissionTempTexture;
-		sf::RenderTexture mAntumbraTempTexture;
-		sf::RenderTexture mCompositionTexture;
+		sf::RenderTexture mLightTempTexture; ///< The light render texture
+		sf::RenderTexture mEmissionTempTexture; ///< The emission render texture
+		sf::RenderTexture mAntumbraTempTexture; ///< The antumbra render texture
+		sf::RenderTexture mCompositionTexture; ///< The composition render texture
 
-		float mDirectionEmissionRange;
-		float mDirectionEmissionRadiusMultiplier;
-		sf::Color mAmbientColor;
+		float mDirectionEmissionRange; ///< The direction emission range
+		float mDirectionEmissionRadiusMultiplier; ///< The dreiction emission radius multiplier
+		sf::Color mAmbientColor; ///< The ambient color
 };
 
 } // namespace ltbl

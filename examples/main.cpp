@@ -5,7 +5,7 @@
 
 int main()
 {
-	sf::RenderWindow window(sf::VideoMode(800, 600), "Let The Be Light 2", sf::Style::Close);
+	sf::RenderWindow window(sf::VideoMode(800, 600), "Let There Be Light 2", sf::Style::Close);
 	window.setVerticalSyncEnabled(true);
 
 	sf::View view = window.getDefaultView();
@@ -29,7 +29,7 @@ int main()
 	auto mlight = ls.createLightPointEmission();
 	mlight->setOrigin(sf::Vector2f(pointLightTexture.getSize().x * 0.5f, pointLightTexture.getSize().y * 0.5f));
 	mlight->setTexture(pointLightTexture);
-	mlight->setScale(1.f, 1.f);
+	mlight->setScale(3.f, 3.f);
 	mlight->setColor(sf::Color::White);
 
 	std::vector<sf::RectangleShape> shapes;
@@ -67,7 +67,7 @@ int main()
 			{
 				if (mlight != nullptr)
 				{
-					mlight->remove(); // or : ls.removeLight(mlight);
+					ls.removeLight(mlight);
 					mlight = nullptr;
 				}
 			}

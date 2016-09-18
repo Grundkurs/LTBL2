@@ -1,11 +1,12 @@
 #include "LightShape.hpp"
-#include "LightSystem.hpp"
 
 namespace ltbl
 {
 
-LightShape::LightShape(LightSystem& system)
-	: BaseLight(system)
+LightShape::LightShape()
+	: priv::QuadtreeOccupant()
+	, priv::BaseLight()
+	, sf::Drawable()
 	, mShape()
 	, mRenderLightOver(true)
 {
@@ -22,7 +23,7 @@ unsigned int LightShape::getPointCount() const
 	return mShape.getPointCount();
 }
 
-void LightShape::setPoint(unsigned int index, const sf::Vector2f & point)
+void LightShape::setPoint(unsigned int index, const sf::Vector2f& point)
 {
 	mShape.setPoint(index, point);
 	quadtreeAABBChanged();
@@ -33,12 +34,12 @@ sf::Vector2f LightShape::getPoint(unsigned int index) const
 	return mShape.getPoint(index);
 }
 
-void LightShape::setFillColor(sf::Color const& color)
+void LightShape::setColor(const sf::Color& color)
 {
 	mShape.setFillColor(color);
 }
 
-const sf::Color& LightShape::getFillColor() const
+const sf::Color& LightShape::getColor() const
 {
 	return mShape.getFillColor();
 }
@@ -77,9 +78,15 @@ const sf::Vector2f& LightShape::getPosition() const
 	return mShape.getPosition();
 }
 
-void LightShape::setRotation(float rotation)
+void LightShape::setRotation(float angle)
 {
-	mShape.setRotation(rotation);
+	mShape.setRotation(angle);
+	quadtreeAABBChanged();
+}
+
+void LightShape::rotate(float angle)
+{
+	mShape.rotate(angle);
 	quadtreeAABBChanged();
 }
 
@@ -147,11 +154,6 @@ bool LightShape::renderLightOver() const
 sf::FloatRect LightShape::getAABB() const
 {
 	return mShape.getGlobalBounds();
-}
-
-void LightShape::remove()
-{
-	getSystem().removeShape(this);
 }
 
 void LightShape::draw(sf::RenderTarget& target, sf::RenderStates states) const
