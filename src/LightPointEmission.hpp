@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Quadtree.hpp"
+#include "Utils.hpp"
 #include "BaseLight.hpp"
 
 namespace ltbl
 {
     
-class LightPointEmission : public QuadtreeOccupant, public BaseLight, public sf::Drawable
+class LightPointEmission : public priv::QuadtreeOccupant, public BaseLight, public sf::Drawable
 {
     public:
 		LightPointEmission(LightSystem& system);
@@ -43,9 +43,7 @@ class LightPointEmission : public QuadtreeOccupant, public BaseLight, public sf:
 		void setOrigin(float x, float y);
 		const sf::Vector2f& getOrigin() const;
 
-        void render(const sf::View& view,
-                    sf::RenderTexture& lightTempTexture, sf::RenderTexture& emissionTempTexture, sf::RenderTexture& antumbraTempTexture,
-                    const std::vector<QuadtreeOccupant*>& shapes);
+        void render(const sf::View& view, sf::RenderTexture& lightTempTexture, sf::RenderTexture& antumbraTempTexture, const std::vector<priv::QuadtreeOccupant*>& shapes);
 
 		void setLocalCastCenter(sf::Vector2f const& localCenter);
 		sf::Vector2f getLocalCastCenter() const;

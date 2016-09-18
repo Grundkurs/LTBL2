@@ -26,6 +26,7 @@ Changes
 - LightDirectionEmission has been simplified
 - Remove/change some hardcoded value
 - Add resources direclty in C++ (PenumbraTexture, UnshadowShader & LightOverShapeShader)
+- Wokring on documentation
 
 License
 -------

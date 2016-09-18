@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Quadtree.hpp"
+#include "Utils.hpp"
 #include "BaseLight.hpp"
 
 namespace ltbl
 {
 
-class LightShape : public QuadtreeOccupant, public BaseLight, public sf::Drawable
+class LightShape : public priv::QuadtreeOccupant, public BaseLight, public sf::Drawable
 {
 	public:
 		LightShape(LightSystem& system);

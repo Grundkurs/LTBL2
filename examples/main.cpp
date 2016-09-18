@@ -23,7 +23,7 @@ int main()
 
 	//----- Add Lights and Blocks
 
-	auto sun = ls.createLightPointDirection();
+	auto sun = ls.createLightDirectionEmission();
 	sun->setColor(sf::Color(255, 230, 200));
 
 	auto mlight = ls.createLightPointEmission();

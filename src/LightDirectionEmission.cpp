@@ -27,7 +27,7 @@ const sf::Color& LightDirectionEmission::getColor() const
 	return mShape.getFillColor();
 }
 
-void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lightTempTexture, sf::RenderTexture &antumbraTempTexture, const std::vector<QuadtreeOccupant*> &shapes, float shadowExtension)
+void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lightTempTexture, sf::RenderTexture &antumbraTempTexture, const std::vector<priv::QuadtreeOccupant*> &shapes, float shadowExtension)
 {
     lightTempTexture.setView(view);
     lightTempTexture.clear(sf::Color::White);
@@ -58,7 +58,7 @@ void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lig
 			float maxDist = 0.0f;
 			for (unsigned j = 0; j < pLightShape->getPointCount(); j++)
 			{
-				maxDist = std::max(maxDist, vectorMagnitude(view.getCenter() - pLightShape->getTransform().transformPoint(pLightShape->getPoint(j))));
+				maxDist = std::max(maxDist, priv::vectorMagnitude(view.getCenter() - pLightShape->getTransform().transformPoint(pLightShape->getPoint(j))));
 			}
 			float totalShadowExtension = shadowExtension + maxDist;
 
@@ -66,8 +66,8 @@ void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lig
 			maskShape.setPointCount(4);
 			maskShape.setPoint(0, pLightShape->getTransform().transformPoint(pLightShape->getPoint(innerBoundaryIndices[0])));
 			maskShape.setPoint(1, pLightShape->getTransform().transformPoint(pLightShape->getPoint(innerBoundaryIndices[1])));
-			maskShape.setPoint(2, pLightShape->getTransform().transformPoint(pLightShape->getPoint(innerBoundaryIndices[1])) + vectorNormalize(innerBoundaryVectors[1]) * totalShadowExtension);
-			maskShape.setPoint(3, pLightShape->getTransform().transformPoint(pLightShape->getPoint(innerBoundaryIndices[0])) + vectorNormalize(innerBoundaryVectors[0]) * totalShadowExtension);
+			maskShape.setPoint(2, pLightShape->getTransform().transformPoint(pLightShape->getPoint(innerBoundaryIndices[1])) + priv::vectorNormalize(innerBoundaryVectors[1]) * totalShadowExtension);
+			maskShape.setPoint(3, pLightShape->getTransform().transformPoint(pLightShape->getPoint(innerBoundaryIndices[0])) + priv::vectorNormalize(innerBoundaryVectors[0]) * totalShadowExtension);
 
 			maskShape.setFillColor(sf::Color::Black);
 
@@ -89,8 +89,8 @@ void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lig
 					getSystem().getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
 
 					vertexArray[0].position = penumbras[j]._source;
-					vertexArray[1].position = penumbras[j]._source + vectorNormalize(penumbras[j]._lightEdge) * totalShadowExtension;
-					vertexArray[2].position = penumbras[j]._source + vectorNormalize(penumbras[j]._darkEdge) * totalShadowExtension;
+					vertexArray[1].position = penumbras[j]._source + priv::vectorNormalize(penumbras[j]._lightEdge) * totalShadowExtension;
+					vertexArray[2].position = penumbras[j]._source + priv::vectorNormalize(penumbras[j]._darkEdge) * totalShadowExtension;
 
 					vertexArray[0].texCoords = sf::Vector2f(0.0f, 1.0f);
 					vertexArray[1].texCoords = sf::Vector2f(1.0f, 0.0f);
@@ -129,8 +129,8 @@ void LightDirectionEmission::render(const sf::View &view, sf::RenderTexture &lig
 
 void LightDirectionEmission::setCastDirection(sf::Vector2f const& castDirection)
 {
-	mCastDirection = vectorNormalize(castDirection);
-	mCastAngle = _radToDeg * std::atan2(mCastDirection.y, mCastDirection.x);
+	mCastDirection = priv::vectorNormalize(castDirection);
+	mCastAngle = priv::_radToDeg * std::atan2(mCastDirection.y, mCastDirection.x);
 }
 
 sf::Vector2f LightDirectionEmission::getCastDirection() const
@@ -141,7 +141,7 @@ sf::Vector2f LightDirectionEmission::getCastDirection() const
 void LightDirectionEmission::setCastAngle(float angle)
 {
 	mCastAngle = angle;
-	float radAngle = angle * _degToRad;
+	float radAngle = angle * priv::_degToRad;
 	mCastDirection = sf::Vector2f(std::cos(radAngle), std::sin(radAngle));
 }
 

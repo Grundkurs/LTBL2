@@ -145,15 +145,8 @@ const sf::Vector2f& LightPointEmission::getOrigin() const
 	return mSprite.getOrigin();
 }
 
-void LightPointEmission::render(const sf::View& view,
-                            sf::RenderTexture& lightTempTexture, sf::RenderTexture& emissionTempTexture, sf::RenderTexture& antumbraTempTexture,
-                            const std::vector<QuadtreeOccupant*>& shapes)
+void LightPointEmission::render(const sf::View& view, sf::RenderTexture& lightTempTexture, sf::RenderTexture& antumbraTempTexture, const std::vector<priv::QuadtreeOccupant*>& shapes)
 {
-    emissionTempTexture.clear();
-    emissionTempTexture.setView(view);
-    emissionTempTexture.draw(*this);
-    emissionTempTexture.display();
-
     float shadowExtension = mShadowOverExtendMultiplier * (getAABB().width + getAABB().height);
 
     struct OuterEdges 
@@ -167,9 +160,6 @@ void LightPointEmission::render(const sf::View& view,
     std::vector<int> innerBoundaryIndices;
     std::vector<sf::Vector2f> innerBoundaryVectors;
     std::vector<LightSystem::Penumbra> penumbras;
-
-	sf::RenderStates maskRenderStates = sf::BlendNone;
-	sf::RenderStates antumbraRenderStates = sf::BlendMultiply;
 
     //----- Emission
 
@@ -213,7 +203,7 @@ void LightPointEmission::render(const sf::View& view,
 			sf::Vector2f intersectionOuter;
 
 			// Handle antumbras as a seperate case
-			if (rayIntersect(as, ad, bs, bd, intersectionOuter))
+			if (priv::rayIntersect(as, ad, bs, bd, intersectionOuter))
 			{
 				sf::Vector2f asi = pLightShape->getTransform().transformPoint(pLightShape->getPoint(innerBoundaryIndices[0]));
 				sf::Vector2f bsi = pLightShape->getTransform().transformPoint(pLightShape->getPoint(innerBoundaryIndices[1]));
@@ -225,7 +215,7 @@ void LightPointEmission::render(const sf::View& view,
 
 				sf::Vector2f intersectionInner;
 
-				if (rayIntersect(asi, adi, bsi, bdi, intersectionInner))
+				if (priv::rayIntersect(asi, adi, bsi, bdi, intersectionInner))
 				{
 					sf::ConvexShape maskShape;
 					maskShape.setPointCount(3);
@@ -241,8 +231,8 @@ void LightPointEmission::render(const sf::View& view,
 					maskShape.setPointCount(4);
 					maskShape.setPoint(0, asi);
 					maskShape.setPoint(1, bsi);
-					maskShape.setPoint(2, bsi + vectorNormalize(bdi) * shadowExtension);
-					maskShape.setPoint(3, asi + vectorNormalize(adi) * shadowExtension);
+					maskShape.setPoint(2, bsi + priv::vectorNormalize(bdi) * shadowExtension);
+					maskShape.setPoint(3, asi + priv::vectorNormalize(adi) * shadowExtension);
 					maskShape.setFillColor(sf::Color::Black);
 					antumbraTempTexture.draw(maskShape);
 				}
@@ -263,8 +253,8 @@ void LightPointEmission::render(const sf::View& view,
 					getSystem().getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
 
 					vertexArray[0].position = penumbras[j]._source;
-					vertexArray[1].position = penumbras[j]._source + vectorNormalize(penumbras[j]._lightEdge) * shadowExtension;
-					vertexArray[2].position = penumbras[j]._source + vectorNormalize(penumbras[j]._darkEdge) * shadowExtension;
+					vertexArray[1].position = penumbras[j]._source + priv::vectorNormalize(penumbras[j]._lightEdge) * shadowExtension;
+					vertexArray[2].position = penumbras[j]._source + priv::vectorNormalize(penumbras[j]._darkEdge) * shadowExtension;
 
 					vertexArray[0].texCoords = sf::Vector2f(0.0f, 1.0f);
 					vertexArray[1].texCoords = sf::Vector2f(1.0f, 0.0f);
@@ -277,7 +267,7 @@ void LightPointEmission::render(const sf::View& view,
 
 				// Multiply back to lightTempTexture
 				lightTempTexture.setView(lightTempTexture.getDefaultView());
-				lightTempTexture.draw(sf::Sprite(antumbraTempTexture.getTexture()), antumbraRenderStates);
+				lightTempTexture.draw(sf::Sprite(antumbraTempTexture.getTexture()), sf::BlendMultiply);
 				lightTempTexture.setView(view);
 			}
 			else
@@ -286,8 +276,8 @@ void LightPointEmission::render(const sf::View& view,
 				maskShape.setPointCount(4);
 				maskShape.setPoint(0, as);
 				maskShape.setPoint(1, bs);
-				maskShape.setPoint(2, bs + vectorNormalize(bd) * shadowExtension);
-				maskShape.setPoint(3, as + vectorNormalize(ad) * shadowExtension);
+				maskShape.setPoint(2, bs + priv::vectorNormalize(bd) * shadowExtension);
+				maskShape.setPoint(3, as + priv::vectorNormalize(ad) * shadowExtension);
 				maskShape.setFillColor(sf::Color::Black);
 				lightTempTexture.draw(maskShape);
 
@@ -306,8 +296,8 @@ void LightPointEmission::render(const sf::View& view,
 					getSystem().getUnshadowShader().setUniform("darkBrightness", penumbras[j]._darkBrightness);
 
 					vertexArray[0].position = penumbras[j]._source;
-					vertexArray[1].position = penumbras[j]._source + vectorNormalize(penumbras[j]._lightEdge) * shadowExtension;
-					vertexArray[2].position = penumbras[j]._source + vectorNormalize(penumbras[j]._darkEdge) * shadowExtension;
+					vertexArray[1].position = penumbras[j]._source + priv::vectorNormalize(penumbras[j]._lightEdge) * shadowExtension;
+					vertexArray[2].position = penumbras[j]._source + priv::vectorNormalize(penumbras[j]._darkEdge) * shadowExtension;
 
 					vertexArray[0].texCoords = sf::Vector2f(0.0f, 1.0f);
 					vertexArray[1].texCoords = sf::Vector2f(1.0f, 0.0f);
@@ -334,8 +324,6 @@ void LightPointEmission::render(const sf::View& view,
             lightTempTexture.draw(*pLightShape);
         }
     }
-
-    //----- Finish
 
     lightTempTexture.display();
 }
