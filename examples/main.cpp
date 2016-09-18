@@ -3,6 +3,7 @@
 
 // Include LetThereBeLight.hpp
 #include "../src/LightSystem.hpp"
+#include "../src/NormalSprite.hpp"
 
 int main()
 {
@@ -12,7 +13,7 @@ int main()
 	sf::View view = window.getDefaultView();
 
 	// Create the LightSystem
-	ltbl::LightSystem ls;
+	ltbl::LightSystem ls(true);
 	ls.create({ -1000.f, -1000.f, 2000.f, 2000.f }, window.getSize());
 
 	// Load light texture
@@ -22,7 +23,14 @@ int main()
 	sf::Texture spookyLightTexture;
 	spookyLightTexture.loadFromFile("LTBL2/examples/spookyLightTexture.png");
 	spookyLightTexture.setSmooth(true);
-
+	sf::Texture backgroundTexture;
+	backgroundTexture.loadFromFile("LTBL2/examples/background.png");
+	sf::Texture backgroundTextureNormals;
+	backgroundTextureNormals.loadFromFile("LTBL2/examples/background_NORMALS.png");
+	sf::Texture headTexture;
+	headTexture.loadFromFile("LTBL2/examples/head.png");
+	sf::Texture headTextureNormals;
+	headTextureNormals.loadFromFile("LTBL2/examples/head_NORMALS.png");
 
 	// Add a sun light
 	ltbl::LightDirectionEmission* sun = ls.createLightDirectionEmission();
@@ -45,6 +53,16 @@ int main()
 
 	// Create a light shape with the same shape
 	ls.createLightShape(blocker);
+
+	ltbl::NormalSprite* background = ls.createNormalSprite();
+	background->setTexture(backgroundTexture);
+	background->setNormalsTexture(backgroundTextureNormals);
+	background->setPosition(0.f, 0.f);
+
+	ltbl::NormalSprite* head = ls.createNormalSprite();
+	head->setTexture(headTexture);
+	head->setNormalsTexture(headTextureNormals);
+	head->setPosition(300.f, 200.f);
 
 	// Main loop
 	float angle = 0.f;
@@ -124,10 +142,12 @@ int main()
 		// Render
 		window.clear(sf::Color::White);
 		window.setView(view);
+		window.draw(*background);
 		for (std::size_t i = 0; i < shapes.size(); i++)
 		{
 			window.draw(shapes[i]);
 		}
+		head->render(window);
 
 		// Render the lights
 		ls.render(window);
