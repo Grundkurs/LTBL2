@@ -19,15 +19,13 @@ void LightSystem::create(const sf::FloatRect& rootRegion, const sf::Vector2u& im
     mLightShapeQuadtree.create(rootRegion, 6, 6);
     mLightPointEmissionQuadtree.create(rootRegion, 6, 6);
 
-	using namespace resources;
-
 	// Load Texture
-	mPenumbraTexture.loadFromMemory(penumbraTexture, (sizeof(penumbraTexture) / sizeof(*penumbraTexture)));
+	mPenumbraTexture.loadFromMemory(priv::penumbraTexture, (sizeof(priv::penumbraTexture) / sizeof(*priv::penumbraTexture)));
 	mPenumbraTexture.setSmooth(true);
 
 	// Load Shaders
-	mUnshadowShader.loadFromMemory(unshadowFragment, sf::Shader::Fragment);
-	mLightOverShapeShader.loadFromMemory(lightOverShapeFragment, sf::Shader::Fragment);
+	mUnshadowShader.loadFromMemory(priv::unshadowFragment, sf::Shader::Fragment);
+	mLightOverShapeShader.loadFromMemory(priv::lightOverShapeFragment, sf::Shader::Fragment);
 
 	update(imageSize);
 }
