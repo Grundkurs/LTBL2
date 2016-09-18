@@ -19,7 +19,7 @@ class LightDirectionEmission : public priv::BaseLight
 
 		//////////////////////////////////////////////////////////////////////////
 		/// \brief Set the color of the light
-		/// \param The new color
+		/// \param color The new color
 		//////////////////////////////////////////////////////////////////////////
 		void setColor(const sf::Color& color);
 
@@ -80,7 +80,7 @@ class LightDirectionEmission : public priv::BaseLight
 
 		//////////////////////////////////////////////////////////////////////////
 		/// \brief Set the source distance
-		/// \param radius The new source distance
+		/// \param distance The new source distance
 		//////////////////////////////////////////////////////////////////////////
 		void setSourceDistance(float distance);
 

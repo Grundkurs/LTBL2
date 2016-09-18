@@ -9,12 +9,13 @@ Install
 
 LTBL2 relies only on [SFML 2.4.0](http://www.sfml-dev.org/download/sfml/2.4.0/index.php)
 
-Add the files to your project (sorry I don't know how to make CMake files)
+Add LetThereBeLight.hpp & LetThereBeLight.cpp to your project
 
 Quick Start
 -----------
 
-See the example file (I will take time to add doc here in few commit)
+[See the example](examples/main.cpp)
+[See the documentation](https://cmdu76.github.io/LTBL2)
 
 Changes
 -------
@@ -27,6 +28,7 @@ Changes
 - Remove/change some hardcoded value
 - Add resources direclty in C++ (PenumbraTexture, UnshadowShader & LightOverShapeShader)
 - Documentation
+- Header-only version
 
 License
 -------

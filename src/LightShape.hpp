@@ -18,7 +18,7 @@ class LightShape : public priv::QuadtreeOccupant, public priv::BaseLight, public
 
 		//////////////////////////////////////////////////////////////////////////
 		/// \brief Set the number of points
-		/// \param count New number of points
+		/// \param pointCount New number of points
 		//////////////////////////////////////////////////////////////////////////
 		void setPointCount(unsigned int pointCount);
 

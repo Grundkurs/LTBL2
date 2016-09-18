@@ -263,6 +263,7 @@ class BaseLight
 		/// \brief Unmask with penumbras
 		/// \param renderTexture The render texture to apply penumbras on
 		/// \param blendMode The blend mode
+		/// \param unshadowShader The unshadow shader
 		/// \param penumbras The penumbras
 		/// \param shadowExtension The shadow extension
 		//////////////////////////////////////////////////////////////////////////
@@ -544,7 +545,7 @@ class LightShape : public priv::QuadtreeOccupant, public priv::BaseLight, public
 
 		//////////////////////////////////////////////////////////////////////////
 		/// \brief Set the number of points
-		/// \param count New number of points
+		/// \param pointCount New number of points
 		//////////////////////////////////////////////////////////////////////////
 		void setPointCount(unsigned int pointCount);
 
@@ -731,7 +732,7 @@ class LightDirectionEmission : public priv::BaseLight
 
 		//////////////////////////////////////////////////////////////////////////
 		/// \brief Set the color of the light
-		/// \param The new color
+		/// \param color The new color
 		//////////////////////////////////////////////////////////////////////////
 		void setColor(const sf::Color& color);
 
@@ -792,7 +793,7 @@ class LightDirectionEmission : public priv::BaseLight
 
 		//////////////////////////////////////////////////////////////////////////
 		/// \brief Set the source distance
-		/// \param radius The new source distance
+		/// \param distance The new source distance
 		//////////////////////////////////////////////////////////////////////////
 		void setSourceDistance(float distance);
 

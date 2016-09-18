@@ -968,6 +968,7 @@ class BaseLight
 		/// \brief Unmask with penumbras
 		/// \param renderTexture The render texture to apply penumbras on
 		/// \param blendMode The blend mode
+		/// \param unshadowShader The unshadow shader
 		/// \param penumbras The penumbras
 		/// \param shadowExtension The shadow extension
 		//////////////////////////////////////////////////////////////////////////
