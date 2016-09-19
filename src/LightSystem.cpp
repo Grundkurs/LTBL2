@@ -35,6 +35,8 @@ LightSystem::LightSystem(bool useNormals)
 
 void LightSystem::create(const sf::FloatRect& rootRegion, const sf::Vector2u& imageSize)
 {
+	// TODO : Delete created objects
+
 	// Quadtrees
     mLightShapeQuadtree.create(rootRegion, 6, 6);
     mLightPointEmissionQuadtree.create(rootRegion, 6, 6);
@@ -266,20 +268,17 @@ void LightSystem::removeLight(LightDirectionEmission* light)
 	}
 }
 
-NormalSprite* LightSystem::createNormalSprite()
+void LightSystem::addSprite(Sprite& sprite)
 {
-	NormalSprite* sprite = new NormalSprite();
-	mNormalSprites.insert(sprite);
-	return sprite;
+	mNormalSprites.insert(&sprite);
 }
 
-void LightSystem::removeSprite(NormalSprite* sprite)
+void LightSystem::removeSprite(Sprite& sprite)
 {
-	auto itr = mNormalSprites.find(sprite);
+	auto itr = mNormalSprites.find(&sprite);
 	if (itr != mNormalSprites.end())
 	{
 		mNormalSprites.erase(itr);
-		delete sprite;
 	}
 }
 

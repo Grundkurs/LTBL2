@@ -6,12 +6,12 @@ namespace ltbl
 {
 
 //////////////////////////////////////////////////////////////////////////
-/// \brief Sprite with normal
+/// \brief Sprite with normals
 //////////////////////////////////////////////////////////////////////////
-class NormalSprite : public priv::BaseLight, public sf::Sprite
+class Sprite : public priv::BaseLight, public sf::Sprite
 {
 	public:
-		NormalSprite();
+		Sprite();
 
 		void setTexture(sf::Texture& texture, bool resetRect = false);
 
@@ -20,7 +20,6 @@ class NormalSprite : public priv::BaseLight, public sf::Sprite
 		const sf::Texture* getNormalsTexture() const;
 
 		void render(sf::RenderTarget& target, sf::RenderStates states = sf::RenderStates());
-
 		void renderNormals(sf::RenderTarget& target, sf::RenderStates states = sf::RenderStates());
 
 	private:

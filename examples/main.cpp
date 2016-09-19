@@ -3,7 +3,6 @@
 
 // Include LetThereBeLight.hpp
 #include "../src/LightSystem.hpp"
-#include "../src/NormalSprite.hpp"
 
 int main()
 {
@@ -54,15 +53,16 @@ int main()
 	// Create a light shape with the same shape
 	ls.createLightShape(blocker);
 
-	ltbl::NormalSprite* background = ls.createNormalSprite();
-	background->setTexture(backgroundTexture);
-	background->setNormalsTexture(backgroundTextureNormals);
-	background->setPosition(0.f, 0.f);
+	ltbl::Sprite background;
+	background.setTexture(backgroundTexture);
+	background.setNormalsTexture(backgroundTextureNormals);
+	ls.addSprite(background);
 
-	ltbl::NormalSprite* head = ls.createNormalSprite();
-	head->setTexture(headTexture);
-	head->setNormalsTexture(headTextureNormals);
-	head->setPosition(300.f, 200.f);
+	ltbl::Sprite head;
+	head.setTexture(headTexture);
+	head.setNormalsTexture(headTextureNormals);
+	head.setPosition(300.f, 200.f);
+	ls.addSprite(head);
 
 	// Main loop
 	float angle = 0.f;
@@ -77,14 +77,10 @@ int main()
 			{
 				window.close();
 			}
-			// Remove the mouse light when middle click
+			// Toggle the mouse light when middle click
 			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Middle)
 			{
-				if (mlight != nullptr)
-				{
-					ls.removeLight(mlight);
-					mlight = nullptr;
-				}
+				mlight->toggleTurnedOn();
 			}
 			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right)
 			{
@@ -100,8 +96,8 @@ int main()
 				blocker.setFillColor(sf::Color::Red);
 				shapes.push_back(blocker);
 
-				// Add a new light shape
-				ls.createLightShape();
+				// Add a new light shape on right click
+				ls.createLightShape(blocker);
 			}
 			// Add a point light when left click
 			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
@@ -122,10 +118,7 @@ int main()
 		sun->setCastAngle(angle);
 
 		// Move the mouse light
-		if (mlight != nullptr)
-		{
-			mlight->setPosition(window.mapPixelToCoords(sf::Mouse::getPosition(window), view));
-		}
+		mlight->setPosition(window.mapPixelToCoords(sf::Mouse::getPosition(window), view));
 
 		// Move the view
 		sf::Vector2f mvt;
@@ -142,12 +135,12 @@ int main()
 		// Render
 		window.clear(sf::Color::White);
 		window.setView(view);
-		window.draw(*background);
+		background.render(window);
 		for (std::size_t i = 0; i < shapes.size(); i++)
 		{
 			window.draw(shapes[i]);
 		}
-		head->render(window);
+		head.render(window);
 
 		// Render the lights
 		ls.render(window);

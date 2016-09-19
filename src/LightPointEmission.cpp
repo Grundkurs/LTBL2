@@ -170,9 +170,9 @@ void LightPointEmission::render(const sf::View& view, sf::RenderTexture& lightTe
 		const auto& lightColor = mSprite.getColor();
 		normalsShader.setUniform("lightColor", sf::Glsl::Vec3(lightColor.r / 255.f, lightColor.g / 255.f, lightColor.b / 255.f));
 		
-		auto oglOrigin = lightTempTexture.mapCoordsToPixel({ 0.f, 0.f }, view);
-		auto oglLightWidthPos = lightTempTexture.mapCoordsToPixel({ getAABB().width, 0.f }, view) - oglOrigin;
-		auto oglLightHeightPos = lightTempTexture.mapCoordsToPixel({ 0.f, getAABB().height }, view) - oglOrigin;
+		auto oglOrigin = lightTempTexture.mapCoordsToPixel({ 0.f, 0.f });
+		auto oglLightWidthPos = lightTempTexture.mapCoordsToPixel({ getAABB().width, 0.f }) - oglOrigin;
+		auto oglLightHeightPos = lightTempTexture.mapCoordsToPixel({ 0.f, getAABB().height }) - oglOrigin;
 		float oglLightWidth = static_cast<float>(std::sqrt(oglLightWidthPos.x * oglLightWidthPos.x + oglLightWidthPos.y * oglLightWidthPos.y));
 		float oglLightHeight = static_cast<float>(std::sqrt(oglLightHeightPos.x * oglLightHeightPos.x + oglLightHeightPos.y * oglLightHeightPos.y));
 		normalsShader.setUniform("lightSize", sf::Glsl::Vec2(oglLightWidth, oglLightHeight));

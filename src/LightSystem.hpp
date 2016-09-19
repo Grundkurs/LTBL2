@@ -3,7 +3,7 @@
 #include "LightDirectionEmission.hpp"
 #include "LightPointEmission.hpp"
 #include "LightResources.hpp"
-#include "NormalSprite.hpp"
+#include "Sprite.hpp"
 
 namespace ltbl
 {
@@ -105,16 +105,16 @@ class LightSystem : sf::NonCopyable
 		void removeLight(LightDirectionEmission* light);
 
 		//////////////////////////////////////////////////////////////////////////
-		/// \brief Create a normal sprite
-		/// \return The new normal sprite
+		/// \brief Add a sprite
+		/// \param sprite The new sprite
 		//////////////////////////////////////////////////////////////////////////
-		NormalSprite* createNormalSprite();
+		void addSprite(Sprite& sprite);
 
 		//////////////////////////////////////////////////////////////////////////
-		/// \brief Remove a normal sprite
-		/// \param sprite The normal sprite to remove
+		/// \brief Remove a sprite
+		/// \param sprite The sprite to remove
 		//////////////////////////////////////////////////////////////////////////
-		void removeSprite(NormalSprite* sprite);
+		void removeSprite(Sprite& sprite);
 
 		//////////////////////////////////////////////////////////////////////////
 		/// \brief Set the direction emission range
@@ -210,7 +210,7 @@ class LightSystem : sf::NonCopyable
 		std::unordered_set<LightPointEmission*> mPointEmissionLights; ///< The LightPointEmissions of the system
 		std::unordered_set<LightDirectionEmission*> mDirectionEmissionLights; ///< The LightDirectionEmissions of the system
 		std::unordered_set<LightShape*> mLightShapes; ///< The LightShapes of the system
-		std::unordered_set<NormalSprite*> mNormalSprites; ///< The NormalSprites of the system
+		std::unordered_set<Sprite*> mNormalSprites; ///< The NormalSprites of the system
 
 		sf::RenderTexture mLightTempTexture; ///< The light render texture
 		sf::RenderTexture mEmissionTempTexture; ///< The emission render texture
