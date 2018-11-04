@@ -58,20 +58,17 @@ void LightSystem::render(sf::RenderTarget& target)
 
 	sf::FloatRect viewBounds = sf::FloatRect(view.getCenter() - view.getSize() * 0.5f, view.getSize());
 
-//	if (mUseNormals  && mNormalSprites.size() > 0) // Cmdu76 version
-	if (mUseNormals)
+	mNormalsTexture.clear(sf::Color(127u, 127u, 255u));
+	mNormalsTexture.setView(view);
+	for (auto itr = mNormalSprites.begin(); itr != mNormalSprites.end(); itr++)
 	{
-		mNormalsTexture.clear(sf::Color(127u, 127u, 255u));
-		mNormalsTexture.setView(view);
-		for (auto itr = mNormalSprites.begin(); itr != mNormalSprites.end(); itr++)
+		if ((*itr) != nullptr && (*itr)->isTurnedOn())
 		{
-			if ((*itr) != nullptr && (*itr)->isTurnedOn())
-			{
-				(*itr)->renderNormals(mNormalsTexture);
-			}
+			(*itr)->renderNormals(mNormalsTexture);
 		}
-		mNormalsTexture.display();
 	}
+	mNormalsTexture.display();
+
 
     mCompositionTexture.clear(mAmbientColor);
     mCompositionTexture.setView(mCompositionTexture.getDefaultView());
@@ -81,7 +78,6 @@ void LightSystem::render(sf::RenderTarget& target)
     // --- Point lights
 
     std::vector<priv::QuadtreeOccupant*> lightShapes;
-
     sf::Sprite lightTempSprite(mLightTempTexture.getTexture());
 
 	// Query lights
