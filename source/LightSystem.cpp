@@ -58,7 +58,8 @@ void LightSystem::render(sf::RenderTarget& target)
 
 	sf::FloatRect viewBounds = sf::FloatRect(view.getCenter() - view.getSize() * 0.5f, view.getSize());
 
-	if (mUseNormals && mNormalSprites.size() > 0)
+//	if (mUseNormals  && mNormalSprites.size() > 0) // Cmdu76 version
+	if (mUseNormals)
 	{
 		mNormalsTexture.clear(sf::Color(127u, 127u, 255u));
 		mNormalsTexture.setView(view);
