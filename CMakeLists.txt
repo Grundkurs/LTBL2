@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.10)
+project(LTBL2)
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
+if(WIN32)
+    set(SFML_ROOT "C:\\SFML")
+endif()
