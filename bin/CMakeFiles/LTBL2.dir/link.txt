@@ -1,0 +1,2 @@
+C:\PROGRA~2\MINGW-~1\bin\ar.exe qc libLTBL2.a  CMakeFiles/LTBL2.dir/source/LightDirectionEmission.cpp.obj CMakeFiles/LTBL2.dir/source/LightPointEmission.cpp.obj CMakeFiles/LTBL2.dir/source/LightShape.cpp.obj CMakeFiles/LTBL2.dir/source/LightSystem.cpp.obj CMakeFiles/LTBL2.dir/source/Sprite.cpp.obj
+C:\PROGRA~2\MINGW-~1\bin\ranlib.exe libLTBL2.a
