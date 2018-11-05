@@ -13,10 +13,10 @@ II. You can compile the library using CMake.
     in Windows, using mingw-w64-Compiler you should
 	go into LTBL2/<compilation folder> and type:
 	
-	```
+	
 	cmake .. -G "MinGW Makefiles" 
 	mingw32-make
-	```
+	
 	
 III. Also you could just add the *.h (in Folder "include") and *.cpp Files (in Folder source" 
     to your project. 
