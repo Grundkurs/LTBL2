@@ -11,7 +11,7 @@ I.  You need to have SFML (v. 2.4 or higher) on your machine.
 
 II. You can compile the library using CMake. 
     in Windows, using mingw-w64-Compiler you should
-	go into the LTBL2/bin Folder and type:
+	go into LTBL2/<compilation folder> and type:
 	```
 	cmake .. -G "MinGW Makefiles" 
 	mingw32-make
